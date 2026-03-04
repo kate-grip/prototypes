@@ -1625,7 +1625,7 @@ function VODSubtitlePrototype() {
         <span style={{ fontSize: 15, fontWeight: 700, color: C.g900 }}>{pageMode === "register" ? "VOD 콘텐츠 등록" : "VOD 콘텐츠 수정"}</span>
         <div style={{ display: "flex", gap: 8 }}>
           <button style={{ padding: "6px 16px", borderRadius: 6, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 13, color: C.g600, cursor: "pointer" }}>취소</button>
-          <button style={{ padding: "6px 16px", borderRadius: 6, border: "none", backgroundColor: C.primary, fontSize: 13, color: C.white, cursor: "pointer", fontWeight: 600 }}>저장</button>
+          <button onClick={() => { if (pageMode === "register") apply(2); }} style={{ padding: "6px 16px", borderRadius: 6, border: "none", backgroundColor: C.primary, fontSize: 13, color: C.white, cursor: "pointer", fontWeight: 600 }}>저장</button>
         </div>
       </div>
 
