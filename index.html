@@ -67,10 +67,39 @@
     color: var(--text-secondary);
   }
 
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
   .header-count {
     font-size: 12px;
     color: var(--text-caption);
-    margin-left: auto;
+  }
+
+  .header-slack {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    transition: all 0.15s;
+  }
+
+  .header-slack:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+    border-color: #d1d5db;
+  }
+
+  .header-slack svg {
+    flex-shrink: 0;
   }
 
   /* ── Layout ── */
@@ -104,9 +133,66 @@
     padding: 8px 0;
   }
 
-  .proto-item {
+  .proto-tag {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--tag-bg);
+    color: var(--text-secondary);
+  }
+
+  .proto-tag.new-feature { background: #fee2e2; color: #dc2626; }
+  .proto-tag.improvement { background: #e0f2fe; color: #0284c7; }
+
+  .proto-jira {
+    font-size: 11px;
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .proto-jira:hover {
+    text-decoration: underline;
+  }
+
+  /* ── Group (1depth) ── */
+  .proto-group {
+    padding: 10px 16px 6px;
+  }
+
+  .proto-group-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+  }
+
+  .proto-group-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.4;
+  }
+
+  .proto-group-meta {
+    font-size: 11px;
+    color: var(--text-caption);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 2px;
+  }
+
+  /* ── Child item (2depth) ── */
+  .proto-child {
     display: block;
-    padding: 10px 16px;
+    padding: 7px 16px 7px 32px;
     cursor: pointer;
     border: none;
     background: none;
@@ -117,48 +203,32 @@
     border-left: 3px solid transparent;
   }
 
-  .proto-item:hover {
+  .proto-child:hover {
     background: var(--hover-bg);
   }
 
-  .proto-item.active {
+  .proto-child.active {
     background: var(--accent-bg);
     border-left-color: var(--accent);
   }
 
-  .proto-item-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 3px;
+  .proto-child-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
     line-height: 1.4;
   }
 
-  .active .proto-item-title {
+  .proto-child.active .proto-child-title {
     color: var(--accent);
+    font-weight: 600;
   }
 
-  .proto-item-meta {
-    font-size: 11px;
-    color: var(--text-caption);
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-
-  .proto-tag {
+  .proto-child-area {
     font-size: 10px;
-    font-weight: 500;
-    padding: 1px 6px;
-    border-radius: 3px;
-    background: var(--tag-bg);
-    color: var(--text-secondary);
+    color: var(--text-caption);
+    margin-top: 1px;
   }
-
-  .proto-tag.new-feature { background: #dbeafe; color: #1d4ed8; }
-  .proto-tag.improvement { background: #d1fae5; color: #047857; }
-  .proto-tag.admin { background: #fef3c7; color: #92400e; }
-  .proto-tag.player { background: #ede9fe; color: #5b21b6; }
 
   /* ── Main viewer ── */
   .viewer {
@@ -173,6 +243,7 @@
     border: none;
   }
 
+  /* ── Empty state ── */
   .viewer-empty {
     display: flex;
     flex-direction: column;
@@ -180,20 +251,121 @@
     justify-content: center;
     height: 100%;
     color: var(--text-caption);
-    gap: 8px;
+    gap: 16px;
+    padding: 40px;
   }
 
-  .viewer-empty-icon {
-    font-size: 40px;
-    opacity: 0.3;
+  .empty-illustration {
+    width: 200px;
+    height: 140px;
+    position: relative;
+    margin-bottom: 8px;
+  }
+
+  .empty-illustration .window {
+    width: 140px;
+    height: 96px;
+    border-radius: 10px;
+    border: 2px solid #e0e3e8;
+    background: #f9fafb;
+    position: absolute;
+    left: 54%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    overflow: hidden;
+  }
+
+  .empty-illustration .window-bar {
+    height: 20px;
+    background: #f0f1f3;
+    border-bottom: 1px solid #e0e3e8;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    gap: 4px;
+  }
+
+  .empty-illustration .window-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #d1d5db;
+  }
+
+  .empty-illustration .window-body {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .empty-illustration .window-line {
+    height: 4px;
+    border-radius: 2px;
+    background: #e8e9ec;
+  }
+
+  .empty-illustration .window-line:nth-child(1) { width: 70%; }
+  .empty-illustration .window-line:nth-child(2) { width: 90%; }
+  .empty-illustration .window-line:nth-child(3) { width: 50%; }
+  .empty-illustration .window-line:nth-child(4) { width: 80%; }
+  .empty-illustration .window-line:nth-child(5) { width: 60%; }
+
+  .empty-illustration .sidebar-mini {
+    width: 44px;
+    height: 96px;
+    border-radius: 8px;
+    border: 2px solid #dbeafe;
+    background: #eff6ff;
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .empty-illustration .sidebar-mini-bar {
+    height: 20px;
+    background: #dbeafe;
+    border-bottom: 1px solid #bfdbfe;
+    border-radius: 6px 6px 0 0;
+  }
+
+  .empty-illustration .sidebar-mini-items {
+    padding: 6px 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .empty-illustration .sidebar-mini-item {
+    height: 4px;
+    border-radius: 2px;
+    background: #bfdbfe;
+  }
+
+  .empty-illustration .sidebar-mini-item.active-item {
+    background: var(--accent);
+    opacity: 0.5;
+  }
+
+  .empty-illustration .cursor {
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    left: 30px;
+    bottom: 16px;
+    animation: cursorFloat 3s ease-in-out infinite;
+  }
+
+  @keyframes cursorFloat {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-4px, -6px); }
   }
 
   .viewer-empty-text {
     font-size: 14px;
-  }
-
-  .viewer-empty-sub {
-    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
   }
 
   /* ── Scrollbar ── */
@@ -208,15 +380,51 @@
   <span class="header-logo">Grip Cloud</span>
   <span class="header-divider"></span>
   <span class="header-title">Prototypes</span>
-  <span class="header-count" id="countLabel"></span>
+  <div class="header-right">
+    <span class="header-count" id="countLabel"></span>
+    <a class="header-slack" href="https://grip-corp.slack.com/team/U070Q44981K" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M14 20.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5z"/><path d="M10 9.5C10 10.33 9.33 11 8.5 11h-5C2.67 11 2 10.33 2 9.5S2.67 8 3.5 8h5c.83 0 1.5.67 1.5 1.5z"/><path d="M10 3.5C10 4.33 9.33 5 8.5 5S7 4.33 7 3.5 7.67 2 8.5 2s1.5.67 1.5 1.5z"/></svg>
+      슬랙으로 문의하기
+    </a>
+  </div>
 </div>
 
 <div class="layout">
   <nav class="sidebar" id="sidebar"></nav>
   <main class="viewer" id="viewer">
     <div class="viewer-empty">
-      <div class="viewer-empty-icon">◁</div>
-      <div class="viewer-empty-text">좌측 목록에서 프로토타입을 선택하세요</div>
+      <div class="empty-illustration">
+        <!-- 미니 사이드바 -->
+        <div class="sidebar-mini">
+          <div class="sidebar-mini-bar"></div>
+          <div class="sidebar-mini-items">
+            <div class="sidebar-mini-item active-item"></div>
+            <div class="sidebar-mini-item"></div>
+            <div class="sidebar-mini-item"></div>
+            <div class="sidebar-mini-item"></div>
+          </div>
+        </div>
+        <!-- 윈도우 -->
+        <div class="window">
+          <div class="window-bar">
+            <div class="window-dot"></div>
+            <div class="window-dot"></div>
+            <div class="window-dot"></div>
+          </div>
+          <div class="window-body">
+            <div class="window-line"></div>
+            <div class="window-line"></div>
+            <div class="window-line"></div>
+            <div class="window-line"></div>
+            <div class="window-line"></div>
+          </div>
+        </div>
+        <!-- 커서 -->
+        <svg class="cursor" viewBox="0 0 24 24" fill="none">
+          <path d="M5 3l14 8-6 2-4 6-4-16z" fill="#1677FF" opacity="0.6"/>
+        </svg>
+      </div>
+      <div class="viewer-empty-text">좌측 목록에서 프로토타입을 선택하세요.</div>
     </div>
   </main>
 </div>
@@ -228,24 +436,41 @@
   const prototypes = [
     {
       section: '진행 중',
-      items: [
+      groups: [
         {
-          title: 'VOD 자동자막 - 어드민 설정 화면',
-          file: 'vod-subtitle-prototype.html',
-          tags: ['신규', '어드민'],
-          date: '2026.03.04',
+          feature: 'VOD 자동자막',
+          tag: '신규',
+          jira: 'PSC-2483',
+          children: [
+            {
+              title: 'VOD 콘텐츠 등록/수정',
+              file: 'vod-cc_admin_vod-contents.html',
+              date: '2026.03.04',
+            },
+            // {
+            //   title: '플레이어 자막 표시',
+            //   file: 'vod-subtitle-player.html',
+            //   date: '2026.03.10',
+            // },
+          ],
         },
       ],
     },
     {
       section: '완료',
-      items: [
-        // 완료된 프로토타입은 여기에 추가
+      groups: [
+        // 완료된 기능 그룹은 여기에 추가
         // {
-        //   title: '알림 센터 드롭다운',
-        //   file: 'notification-center.html',
-        //   tags: ['개선', '어드민'],
-        //   date: '2026.02.27',
+        //   feature: '알림 센터',
+        //   tag: '고도화',
+        //   jira: 'PSC-2876',
+        //   children: [
+        //     {
+        //       title: '어드민 드롭다운',
+        //       file: 'notification-center.html',
+        //       date: '2026.02.27',
+        //     },
+        //   ],
         // },
       ],
     },
@@ -254,9 +479,7 @@
 
   const tagClassMap = {
     '신규': 'new-feature',
-    '개선': 'improvement',
-    '어드민': 'admin',
-    '플레이어': 'player',
+    '고도화': 'improvement',
   };
 
   function render() {
@@ -266,32 +489,47 @@
     let html = '';
 
     prototypes.forEach(section => {
-      const visibleItems = section.items.filter(i => i.title);
-      if (visibleItems.length === 0 && section.section === '완료') return;
-      totalCount += visibleItems.length;
+      const visibleGroups = section.groups.filter(g => g.children && g.children.length > 0);
+      if (visibleGroups.length === 0 && section.section === '완료') return;
+
+      visibleGroups.forEach(g => { totalCount += g.children.length; });
 
       html += '<div class="sidebar-section">';
-      html += '<div class="sidebar-section-title">' + section.section + ' (' + visibleItems.length + ')</div>';
+      html += '<div class="sidebar-section-title">' + section.section + '</div>';
       html += '</div>';
 
-      visibleItems.forEach(item => {
-        const tags = item.tags.map(t =>
-          '<span class="proto-tag ' + (tagClassMap[t] || '') + '">' + t + '</span>'
-        ).join('');
+      visibleGroups.forEach(group => {
+        const tagHtml = group.tag
+          ? '<span class="proto-tag ' + (tagClassMap[group.tag] || '') + '">' + group.tag + '</span>'
+          : '';
 
-        html += '<button class="proto-item" data-file="' + item.file + '">';
-        html += '<div class="proto-item-title">' + item.title + '</div>';
-        html += '<div class="proto-item-meta">' + tags + '<span>' + item.date + '</span></div>';
-        html += '</button>';
+        const jiraHtml = group.jira
+          ? '<a class="proto-jira" href="https://gripcorp.atlassian.net/browse/' + group.jira + '" target="_blank" rel="noopener">' + group.jira + '</a>'
+          : '';
+
+        html += '<div class="proto-group">';
+        html += '<div class="proto-group-header">';
+        html += '<span class="proto-group-title">' + group.feature + '</span>';
+        html += tagHtml;
+        html += '</div>';
+        html += '<div class="proto-group-meta">' + jiraHtml + '</div>';
+        html += '</div>';
+
+        group.children.forEach(child => {
+          html += '<div class="proto-child" data-file="' + child.file + '">';
+          html += '<div class="proto-child-title">' + child.title + '</div>';
+          html += '<div class="proto-child-area">' + child.date + '</div>';
+          html += '</div>';
+        });
       });
     });
 
     sidebar.innerHTML = html;
     countLabel.textContent = '총 ' + totalCount + '개';
 
-    sidebar.querySelectorAll('.proto-item').forEach(btn => {
-      btn.addEventListener('click', () => {
-        sidebar.querySelectorAll('.proto-item').forEach(b => b.classList.remove('active'));
+    sidebar.querySelectorAll('.proto-child').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        sidebar.querySelectorAll('.proto-child').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById('viewer').innerHTML =
           '<iframe src="' + btn.dataset.file + '"></iframe>';
