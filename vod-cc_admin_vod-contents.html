@@ -1595,6 +1595,14 @@ function VODSubtitlePrototype() {
   const [activeScenario, setActiveScenario] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [vodTitle, setVodTitle] = useState("[봄파티 미식대전] 🍓스트로베리🍓 초콜릿 케이크 예약배송");
+  const [titleOverflow, setTitleOverflow] = useState(false);
+  const titleRef = useRef(null);
+
+  useEffect(() => {
+    if (titleRef.current) {
+      setTitleOverflow(titleRef.current.scrollWidth > titleRef.current.clientWidth);
+    }
+  }, [vodTitle]);
 
   const showSubInPreview = autoSub && status === "complete" && expose;
 
@@ -1781,7 +1789,7 @@ function VODSubtitlePrototype() {
                     fontSize: 11, fontWeight: 600, color: C.white,
                     textShadow: "0 1px 2px rgba(0,0,0,0.3)",
                     overflow: "hidden", whiteSpace: "nowrap",
-                  }}><span style={{ display: "inline-block", animation: "marquee 12s linear infinite" }}>{vodTitle}&nbsp;&nbsp;&nbsp;&nbsp;{vodTitle}&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+                  }} ref={titleRef}>{titleOverflow ? <span style={{ display: "inline-block", animation: "marquee 12s linear infinite" }}>{vodTitle}&nbsp;&nbsp;&nbsp;&nbsp;{vodTitle}&nbsp;&nbsp;&nbsp;&nbsp;</span> : vodTitle}</div>
                   <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", marginTop: 2, display: "flex", alignItems: "center", gap: 3 }}>
                     <span>그립 클라우드 라이브</span>
                     <span style={{ margin: "0 1px" }}> · </span>
