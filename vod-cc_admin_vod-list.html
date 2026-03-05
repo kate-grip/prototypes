@@ -151,7 +151,13 @@ function App() {
 
   React.useEffect(() => {
     const el = document.querySelector(`[data-row-id="${highlightId}"]`);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    const container = document.getElementById("content-scroll");
+    if (el && container) {
+      const elRect = el.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const offset = elRect.top - containerRect.top + container.scrollTop - containerRect.height / 2 + elRect.height / 2;
+      container.scrollTo({ top: Math.max(0, offset), behavior: "smooth" });
+    }
   }, [activeScenario]);
 
   return (
@@ -308,7 +314,7 @@ function App() {
             <h1 style={{ fontSize: 20, fontWeight: 700, color: C.g900 }}>VOD 콘텐츠</h1>
             <button style={{ padding: "6px 14px", borderRadius: 4, border: "none", backgroundColor: C.primary, fontSize: 12, color: C.white, fontWeight: 400, cursor: "pointer" }}>VOD 콘텐츠 등록</button>
           </div>
-          <div style={{ flex: 1, padding: "0 24px 24px", overflowY: "auto", backgroundColor: C.white }}>
+          <div id="content-scroll" style={{ flex: 1, padding: "0 24px 24px", overflowY: "auto", backgroundColor: C.white }}>
 
             {/* 필터 영역 */}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", padding: "12px 16px", margin: "16px 0 12px", backgroundColor: C.g50, borderRadius: 4 }}>
