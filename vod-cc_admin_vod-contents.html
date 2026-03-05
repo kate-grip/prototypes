@@ -66,7 +66,7 @@ function Badge({ status }) {
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 5,
-      padding: "3px 12px", borderRadius: 2, fontSize: 10, fontWeight: 700, marginLeft: 8,
+      padding: "3px 12px", borderRadius: 4, fontSize: 10, fontWeight: 700, marginLeft: 8,
       backgroundColor: isGen ? C.amber50 : "rgba(128,226,126,0.2)", color: isGen ? C.amber700 : "#4CAF50",
       whiteSpace: "nowrap",
     }}>
@@ -1598,11 +1598,11 @@ function VODSubtitlePrototype() {
   const showSubInPreview = autoSub && status === "complete" && expose;
 
   const scenarios = [
-    { name: "1. 기본 상태", desc: "VOD 콘텐츠 등록 — 자동자막 OFF", auto: false, st: "idle", exp: true, mode: "register" },
-    { name: "2. 자동자막 사용 ON", desc: "VOD 콘텐츠 등록 — 자막 노출 기본 ON", auto: true, st: "idle", exp: true, mode: "register" },
-    { name: "3. 저장 후 재진입", desc: "VOD 콘텐츠 수정 — 자막 생성중", auto: true, st: "generating", exp: true, mode: "edit" },
-    { name: "4. 생성완료 + 노출 ON", desc: "VOD 콘텐츠 수정 — 자막 노출됨", auto: true, st: "complete", exp: true, mode: "edit" },
-    { name: "5. 생성완료 + 노출 OFF", desc: "VOD 콘텐츠 수정 — 수정 후 노출 예정", auto: true, st: "complete", exp: false, mode: "edit" },
+    { name: "1. 기본 상태", desc: "VOD 등록 — 자동자막 OFF", auto: false, st: "idle", exp: true, mode: "register" },
+    { name: "2. 자동자막 사용 ON", desc: "VOD 등록 — 자막 노출 기본 ON", auto: true, st: "idle", exp: true, mode: "register" },
+    { name: "3. 저장 후 재진입", desc: "VOD 수정 — 자막 생성중", auto: true, st: "generating", exp: true, mode: "edit" },
+    { name: "4. 생성완료 + 노출 ON", desc: "VOD 수정 — 자막 노출됨", auto: true, st: "complete", exp: true, mode: "edit" },
+    { name: "5. 생성완료 + 노출 OFF", desc: "VOD 수정 — 수정 후 노출 예정", auto: true, st: "complete", exp: false, mode: "edit" },
   ];
 
   const apply = (i) => {
@@ -1632,11 +1632,11 @@ function VODSubtitlePrototype() {
       {showModal && <SubtitleEditorModal onClose={() => setShowModal(false)} />}
 
       {/* TOP BAR */}
-      <div style={{ height: 48, backgroundColor: C.white, borderBottom: `1px solid ${C.g200}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px" }}>
-        <span style={{ fontSize: 15, fontWeight: 700, color: C.g900 }}>{pageMode === "register" ? "VOD 콘텐츠 등록" : "VOD 콘텐츠 수정"}</span>
+      <div style={{ height: 60, flexShrink: 0, backgroundColor: C.white, borderBottom: "1px solid #EEEEEE", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 24px" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: C.g900 }}>{pageMode === "register" ? "VOD 등록" : "VOD 수정"}</h1>
         <div style={{ display: "flex", gap: 8 }}>
           <button style={{ padding: "6px 16px", borderRadius: 6, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 13, color: C.g600, cursor: "pointer" }}>취소</button>
-          <button onClick={() => { if (pageMode === "register") apply(2); }} style={{ padding: "6px 16px", borderRadius: 6, border: "none", backgroundColor: C.primary, fontSize: 13, color: C.white, cursor: "pointer", fontWeight: 600 }}>저장</button>
+          <button style={{ padding: "6px 16px", borderRadius: 6, border: "none", backgroundColor: C.primary, fontSize: 13, color: C.white, cursor: "pointer", fontWeight: 600 }}>저장</button>
         </div>
       </div>
 
@@ -1725,17 +1725,9 @@ function VODSubtitlePrototype() {
           <div style={{ marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "center" }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: C.g900 }}>미리보기</div>
-              <div style={{ marginLeft: "auto", display: "flex", gap: 12, fontSize: 12, color: C.g500, alignItems: "center" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
-                  <span style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid ${C.primary}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: C.primary }} />
-                  </span>
-                  <span style={{ fontWeight: 600, color: C.g700 }}>라이브</span>
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
-                  <span style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid ${C.g300}`, display: "flex", alignItems: "center", justifyContent: "center" }} />
-                  <span style={{ color: C.g400 }}>예약</span>
-                </label>
+              <div style={{ marginLeft: "auto", display: "flex", gap: 10, fontSize: 11, color: C.g400 }}>
+                <span style={{ color: C.primary, fontWeight: 600 }}>● 라이브</span>
+                <span>○ 예약</span>
               </div>
             </div>
           </div>
@@ -1850,14 +1842,14 @@ function VODSubtitlePrototype() {
             <div style={{ fontSize: 12, fontWeight: 600, color: C.g700, marginBottom: 8 }}>현재 상태 설명</div>
             {activeScenario === 0 && (
               <div style={{ fontSize: 12, color: C.g600, lineHeight: 1.8 }}>
-                <div>페이지: <strong style={{ color: C.g700 }}>VOD 콘텐츠 등록</strong></div>
+                <div>페이지: <strong style={{ color: C.g700 }}>VOD 등록</strong></div>
                 <div>자동자막 사용: <strong style={{ color: C.g700 }}>OFF (기본값)</strong></div>
                 <div>자막 노출 항목: <strong style={{ color: C.g700 }}>미노출</strong> — 자동자막 OFF 시 자막 노출 토글 미표시</div>
               </div>
             )}
             {activeScenario === 1 && (
               <div style={{ fontSize: 12, color: C.g600, lineHeight: 1.8 }}>
-                <div>페이지: <strong style={{ color: C.g700 }}>VOD 콘텐츠 등록</strong></div>
+                <div>페이지: <strong style={{ color: C.g700 }}>VOD 등록</strong></div>
                 <div>자동자막 사용: <strong style={{ color: C.primary }}>ON</strong> — 자막 생성은 저장 후 서버에서 시작</div>
                 <div>자막 노출: <strong style={{ color: C.primary }}>ON (기본값)</strong> — 생성 완료 시 자동으로 VOD와 함께 노출</div>
                 <div>미리보기 자막: <strong style={{ color: C.g700 }}>없음</strong> — 아직 생성 전</div>
@@ -1865,7 +1857,7 @@ function VODSubtitlePrototype() {
             )}
             {activeScenario === 2 && (
               <div style={{ fontSize: 12, color: C.g600, lineHeight: 1.8 }}>
-                <div>페이지: <strong style={{ color: C.g700 }}>VOD 콘텐츠 수정</strong> — 저장 후 재진입 상태</div>
+                <div>페이지: <strong style={{ color: C.g700 }}>VOD 수정</strong> — 저장 후 재진입 상태</div>
                 <div>자동자막 사용: <strong style={{ color: C.primary }}>ON</strong> | 뱃지: <strong style={{ color: C.amber700 }}>자막 생성중</strong></div>
                 <div>자막 노출: <strong style={{ color: C.primary }}>ON</strong> — 등록 시 설정값 유지</div>
                 <div>미리보기 자막: <strong style={{ color: C.g700 }}>없음</strong> — 생성 완료 전</div>
@@ -1873,7 +1865,7 @@ function VODSubtitlePrototype() {
             )}
             {activeScenario === 3 && (
               <div style={{ fontSize: 12, color: C.g600, lineHeight: 1.8 }}>
-                <div>페이지: <strong style={{ color: C.g700 }}>VOD 콘텐츠 수정</strong></div>
+                <div>페이지: <strong style={{ color: C.g700 }}>VOD 수정</strong></div>
                 <div>자동자막 사용: <strong style={{ color: C.primary }}>ON</strong> | 뱃지: <strong style={{ color: C.green600 }}>자막 생성완료</strong> | "자막 확인 및 수정" 버튼 노출</div>
                 <div>자막 노출: <strong style={{ color: C.primary }}>ON</strong> — 시청자에게 자막 노출 중</div>
                 <div>미리보기 자막: <strong style={{ color: C.primary }}>표시됨</strong></div>
@@ -1884,7 +1876,7 @@ function VODSubtitlePrototype() {
             )}
             {activeScenario === 4 && (
               <div style={{ fontSize: 12, color: C.g600, lineHeight: 1.8 }}>
-                <div>페이지: <strong style={{ color: C.g700 }}>VOD 콘텐츠 수정</strong></div>
+                <div>페이지: <strong style={{ color: C.g700 }}>VOD 수정</strong></div>
                 <div>자동자막 사용: <strong style={{ color: C.primary }}>ON</strong> | 뱃지: <strong style={{ color: C.green600 }}>자막 생성완료</strong></div>
                 <div>자막 노출: <strong style={{ color: C.g700 }}>OFF</strong> — 운영자가 자막 확인/수정 후 노출 예정</div>
                 <div>미리보기 자막: <strong style={{ color: C.g700 }}>숨김</strong></div>
