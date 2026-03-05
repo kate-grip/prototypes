@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vod-cc_admin_vod-list</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>*{margin:0;padding:0;box-sizing:border-box;font-family:'Noto Sans KR',sans-serif;}
+button,input,select,textarea{font-family:inherit;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+.lnb-scroll::-webkit-scrollbar{width:3px;}
+.lnb-scroll::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:2px;}
+.lnb-scroll::-webkit-scrollbar-track{background:transparent;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+/*
+ * ── Grip Cloud 컬러 시스템 (Light) ──
+ * Primary:    Strong #222222 | Normal #003D99 | Secondary #508EFF | Admin_point #1677FF
+ * Border:     Normal #E4E5E7 | Accent #AFB0B2 | Assistive #F0F0F0 | Bold #666666
+ * Status:     Positive #6198FD | Negative1 #F23526 | Negative2 #FF4D4F
+ * Text:       Normal #222222 | Sub-menu #6C6C6C | Alternative #888888 | Assistive #B0B0B0
+ * Background: 001 #F9F9F9 | 002 #FAFAFA | 003 #F7F8FA | 004 #E6F4FF
+ * Dim:        Modal rgba(0,0,0,0.45) | Toast rgba(0,0,0,0.10)
+ */
+const C = {
+  primary: "#1677FF", primaryLight: "#E6F4FF", bg: "#F9F9F9", white: "#FFFFFF",
+  g50: "#FAFAFA", g100: "#F0F0F0", g200: "#E4E5E7", g300: "#AFB0B2",
+  g400: "#B0B0B0", g500: "#888888", g600: "#6C6C6C", g700: "#666666",
+  g800: "#222222", g900: "#222222",
+  amber50: "#FFFBEB", amber500: "#F59E0B", amber700: "#B45309",
+  green50: "#F6FFED", green600: "#52C41A", green700: "#52C41A",
+  blue50: "#E6F4FF", blue600: "#1677FF",
+  red50: "#FFF1F0", red600: "#F23526",
+  negative2: "#FF4D4F",
+  secondary: "#508EFF",
+  primaryNormal: "#003D99",
+};
+
+// ── 배지 컴포넌트 ──
+function StatusBadge({ label, color = "gray" }) {
+  const colors = {
+    gray:   { bg: C.g100, text: C.g600 },
+    blue:   { bg: C.blue50, text: C.blue600 },
+    green:  { bg: C.green50, text: C.green700 },
+    red:    { bg: C.red50, text: C.red600 },
+  };
+  const c = colors[color] || colors.gray;
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", padding: "2px 6px",
+      borderRadius: 4, fontSize: 11, fontWeight: 500,
+      backgroundColor: c.bg, color: c.text, whiteSpace: "nowrap",
+    }}>{label}</span>
+  );
+}
+
+function SubtitleBadge({ status }) {
+  if (!status) return null;
+  const isGen = status === "generating";
+  const isFailed = status === "failed";
+  const bgColor = isGen ? C.amber50 : isFailed ? "rgba(245,34,45,0.15)" : "rgba(128,226,126,0.2)";
+  const textColor = isGen ? C.amber700 : isFailed ? "#F23526" : "#4CAF50";
+  const label = isGen ? "자막 생성중" : isFailed ? "자막 생성실패" : "자막 생성완료";
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 5,
+      padding: "3px 12px", borderRadius: 4, fontSize: 10, fontWeight: 700,
+      backgroundColor: bgColor, color: textColor,
+      whiteSpace: "nowrap",
+    }}>
+      {isGen && <span style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: C.amber500, animation: "pulse 1.5s ease-in-out infinite" }} />}
+      {label}
+    </span>
+  );
+}
+
+// ── 더미 데이터 ──
+// 커버 이미지 placeholder (9:16 비율 = 62x110)
+const COVER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='62' height='110' fill='%23f9f9f9'%3E%3Crect width='62' height='110' rx='4' stroke='%23eee' stroke-width='1' fill='%23f9f9f9'/%3E%3Ctext x='31' y='58' fill='%23ccc' font-size='9' text-anchor='middle' font-family='sans-serif'%3E9:16%3C/text%3E%3C/svg%3E";
+const COVER_CAKE = "data:image/jpeg;base64,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";
+const COVER_SWEATER = "data:image/jpeg;base64,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";
+
+// 배지 타입: blue(업로드/라이브/리허설), green(공개중)
+const baseRows = [
+  {
+    id: "highlight-1",
+    title: "<완판감사 앵콜 재방송> [봄파티 미식대전] 스트로베리 초콜릿 케이크 예약배송",
+    typeBadges: [{ label: "라이브", color: "blue" }, { label: "공개중", color: "green" }],
+    subtitleStatus: "generating",
+    vodLiveEnabled: true,
+    shortsEnabled: false,
+    cover: COVER_CAKE,
+    startDate: "2026.03.03 10:00:00",
+    regDate: "2026.03.03 14:31:53",
+  },
+  {
+    id: "highlight-2",
+    title: "[봄파티 미식대전] 스트로베리 초콜릿 케이크 예약배송",
+    typeBadges: [{ label: "라이브", color: "blue" }, { label: "공개중", color: "green" }],
+    subtitleStatus: "complete",
+    vodLiveEnabled: true,
+    shortsEnabled: false,
+    cover: COVER_CAKE,
+    startDate: "2026.03.03 12:00:00",
+    regDate: "2026.03.03 13:53:58",
+  },
+  {
+    id: "row-3",
+    title: "설명절 특집! 봄옷 미리준비 BIG SALE",
+    typeBadges: [{ label: "업로드", color: "blue" }, { label: "공개중", color: "green" }],
+    subtitleStatus: "failed",
+    vodLiveEnabled: true,
+    shortsEnabled: false,
+    cover: COVER_SWEATER,
+    startDate: "-",
+    regDate: "2026.02.03 11:25:03",
+  },
+];
+
+// ── 사이드바 메뉴 (피그마 LNB 기반) ──
+const lnbSections = [
+  { key: "live", title: "라이브", items: ["라이브 일정", "VOD 콘텐츠", "콘텐츠 유입 매체 통계", "실시간 라이브 통계", "콘텐츠 대시보드", "기간 대시보드", "플레이어 템플릿", "위젯", "위젯 템플릿"] },
+  { key: "shorts", title: "Shorts", items: ["콘텐츠", "재생목록", "플레이어 템플릿", "위젯", "위젯 템플릿"] },
+  { key: "sales", title: "판매 / 프로모션", items: ["상품", "커스텀 상품 배지", "쿠폰", "미니 배너"] },
+  { key: "page", title: "페이지 제작", items: ["이미지 배너", "이미지 배너 위젯", "페이지 구성"] },
+  { key: "service", title: "서비스 설정", items: ["금칙어", "추가 기능", "채팅 색상"] },
+];
+const ACTIVE_MENU = "VOD 콘텐츠";
+
+function App() {
+  const [activeScenario, setActiveScenario] = useState(0);
+  const [expanded, setExpanded] = useState({ live: true, shorts: true, sales: true, page: true, service: true });
+
+  const scenarios = [
+    { name: "1. 변환 완료 + 자막 생성중", desc: "VOD 변환 완료 상태에서 자막 생성이 진행 중인 상태", highlightId: "highlight-1" },
+    { name: "2. 변환 완료 + 자막 생성완료", desc: "VOD 변환 및 자막 생성이 모두 완료된 상태", highlightId: "highlight-2" },
+    { name: "3. 자막 생성실패", desc: "자막 생성 과정에서 오류가 발생한 상태", highlightId: "row-3" },
+  ];
+
+  const highlightId = scenarios[activeScenario].highlightId;
+
+  React.useEffect(() => {
+    const el = document.querySelector(`[data-row-id="${highlightId}"]`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [activeScenario]);
+
+  return (
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Noto Sans KR', sans-serif", backgroundColor: C.bg }}>
+
+      {/* GNB (알림센터 HTML 원본 기반) */}
+      <div style={{ height: 40, backgroundColor: C.white, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", flexShrink: 0, position: "relative" }}>
+        <div style={{ position: "absolute", inset: 0, borderBottom: "1px solid #F0F0F0", pointerEvents: "none" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          {/* 햄버거 */}
+          <div style={{ width: 24, height: 24, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <g transform="translate(4.5, 5.75)">
+                <path d="M15 12.5H0V11H15V12.5ZM15 7H0V5.5H15V7ZM15 1.5H0V0H15V1.5Z" fill="#AFB0B2"/>
+              </g>
+            </svg>
+          </div>
+          {/* 로고 */}
+          <div style={{ height: 20, width: 96, position: "relative", flexShrink: 0 }}>
+            <svg style={{ position: "absolute", display: "block", width: "100%", height: "100%" }} fill="none" preserveAspectRatio="none" viewBox="0 0 96 20">
+              <g clipPath="url(#logo-clip)">
+                <path d="M10.0477 6.99317V9.90551H13.5382C13.1142 12.1145 10.9844 13.7886 8.40101 13.7886C5.4725 13.7886 3.09616 11.4013 3.09616 8.44934C3.09616 5.49738 5.4725 3.11006 8.40101 3.11006C9.9195 3.11006 11.2802 3.75394 12.2465 4.77425L14.4355 2.57514C12.9072 0.9902 10.7675 -0.000389099 8.40101 -0.000389099C3.76666 -0.000389099 2.28882e-05 3.78366 2.28882e-05 8.44934C2.28882e-05 13.115 3.7568 16.8991 8.40101 16.8991C12.5423 16.8991 15.9836 13.8778 16.6738 9.90551C16.7527 9.43002 16.802 8.94463 16.802 8.44934C16.802 7.95404 16.7527 7.46865 16.6738 6.99317H10.0477Z" fill="#003D99"/>
+                <path d="M17.9658 16.3047H21.0521L21.062 9.9055H24.1482V6.99316H17.9757L17.9658 16.3047Z" fill="#003D99"/>
+                <path d="M26.8398 2.32764C25.7749 2.32764 24.9072 3.19936 24.9072 4.26919C24.9072 5.33903 25.7749 6.21075 26.8398 6.21075C27.9048 6.21075 28.7725 5.33903 28.7725 4.26919C28.7725 3.19936 27.9048 2.32764 26.8398 2.32764Z" fill="#003D99"/>
+                <path d="M28.3879 6.99318H25.3016V16.3146H28.3879V6.99318Z" fill="#003D99"/>
+                <path d="M34.7581 6.99316H29.5519L29.542 19.9996H32.6283L32.6381 16.3146H34.7581C37.3218 16.3146 39.3924 14.2245 39.3924 11.6588C39.3924 9.09321 37.3218 6.99316 34.7581 6.99316ZM34.7581 13.4023H32.6381V9.9055H34.7581C35.7145 9.9055 36.4935 10.6881 36.4935 11.6489C36.4935 12.6098 35.7244 13.4023 34.7581 13.4023Z" fill="#003D99"/>
+                <path d="M54.4937 13.6401C51.5967 13.6401 49.246 11.2785 49.246 8.35825C49.246 5.438 51.5967 3.07643 54.4937 3.07643C55.9954 3.07643 57.3413 3.71338 58.2978 4.72279L60.4631 2.54746C58.9515 0.979355 56.8345 -0.000338347 54.4937 -0.000338347C49.9096 -0.000338347 46.1834 3.7431 46.1834 8.35825C46.1834 12.9734 49.8998 16.7168 54.4937 16.7168C56.8247 16.7168 58.9318 15.7471 60.4434 14.1889L58.3855 12.0532C57.439 13.0229 56.0447 13.6411 54.4937 13.6411V13.6401Z" fill="#003D99"/>
+                <path d="M64.7519 -0.000488281H61.8037V16.3046H64.7519V-0.000488281Z" fill="#003D99"/>
+                <path d="M75.4334 9.09065C74.9956 8.31799 74.3753 7.69491 73.6062 7.25509C72.8371 6.81527 71.9822 6.58941 71.0416 6.58941C70.1009 6.58941 69.2352 6.81527 68.4661 7.25509C67.697 7.69491 67.0767 8.31799 66.6389 9.09065C66.2011 9.86331 65.9763 10.733 65.9763 11.6781C65.9763 12.6231 66.2011 13.4819 66.6389 14.2546C67.0767 15.0273 67.697 15.6503 68.4661 16.0902C69.2352 16.53 70.1009 16.7558 71.0416 16.7558C71.9822 16.7558 72.8371 16.53 73.6062 16.0902C74.3753 15.6503 74.9956 15.0273 75.4334 14.2546C75.8712 13.4819 76.096 12.6122 76.096 11.6781C76.096 10.7439 75.8712 9.86331 75.4334 9.09065ZM72.8194 12.743C72.6478 13.053 72.4013 13.3096 72.0868 13.5037C71.785 13.69 71.4429 13.7811 71.0406 13.7811C70.6383 13.7811 70.3178 13.6909 69.9993 13.5067C69.67 13.3036 69.4294 13.057 69.2618 12.7529C69.0794 12.423 68.9906 12.0713 68.9906 11.6781C68.9906 11.2848 69.0725 10.9262 69.25 10.5944C69.4235 10.2813 69.6592 10.0357 69.9737 9.84152C70.2961 9.6543 70.6403 9.56415 71.0307 9.56415C71.4212 9.56415 71.7732 9.6543 72.0848 9.83954C72.3974 10.0208 72.6449 10.2734 72.8204 10.5914C73.0028 10.9213 73.0915 11.2729 73.0915 11.6672C73.0915 12.0614 73.0028 12.4121 72.8204 12.742L72.8194 12.743Z" fill="#003D99"/>
+                <path d="M82.6991 12.026C82.6991 12.2934 82.6399 12.5312 82.5216 12.7491C82.4033 12.967 82.2455 13.1255 82.0384 13.2444C81.8314 13.3633 81.5947 13.4227 81.3384 13.4227C81.082 13.4227 80.8453 13.3633 80.6383 13.2444C80.4312 13.1255 80.2636 12.9571 80.1453 12.7392C80.0269 12.5213 79.9678 12.2835 79.9678 12.0161V6.98389H77.0195V12.0062V12.0161C77.0195 12.8185 77.2069 13.5614 77.5816 14.2251C77.9563 14.8888 78.4887 15.4138 79.1494 15.8001C79.81 16.1766 80.5495 16.3648 81.3581 16.3648C82.1666 16.3648 82.8963 16.1766 83.5471 15.8001C84.2077 15.4237 84.7303 14.8888 85.1149 14.2251C85.4895 13.5614 85.6769 12.8185 85.6769 12.0161V12.0062V6.98389H82.7287L82.6991 12.026Z" fill="#003D99"/>
+                <path d="M93.0415 -0.000488281V6.99307H91.316C88.7523 6.99307 86.6816 9.08322 86.6816 11.6488C86.6816 14.2145 88.7523 16.3046 91.316 16.3046H95.9898L95.9996 -0.000488281H93.0415ZM91.3061 13.3923C90.3497 13.3923 89.5707 12.6097 89.5707 11.6488C89.5707 10.688 90.3497 9.90541 91.3061 9.90541H93.0317V13.4022H91.3061V13.3923Z" fill="#003D99"/>
+              </g>
+              <defs><clipPath id="logo-clip"><rect fill="white" width="96" height="20"/></clipPath></defs>
+            </svg>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {/* 벨 */}
+            <div style={{ width: 24, height: 24, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2C11.4 2 11 2.4 11 3C11 3.6 11.4 4 12 4C12.6 4 13 3.6 13 3C13 2.4 12.6 2 12 2Z" fill="#AFB0B2"/>
+                <path d="M12 4C9.8 4 7.8 4.9 6.3 6.4C4.8 7.9 4 10 4 12.2C4 13.9 3.3 15.5 2.2 16.7C1.4 17.6 1.9 19 3.1 19H20.9C22.1 19 22.6 17.6 21.8 16.7C20.7 15.5 20 13.9 20 12.2C20 10 19.2 7.9 17.7 6.4C16.2 4.9 14.2 4 12 4Z" fill="#AFB0B2"/>
+                <path d="M9 20C9 20.8 9.3 21.6 9.9 22.1C10.5 22.7 11.2 23 12 23C12.8 23 13.5 22.7 14.1 22.1C14.7 21.6 15 20.8 15 20H9Z" fill="#AFB0B2"/>
+              </svg>
+            </div>
+            {/* 공지사항 (스피커) */}
+            <div style={{ width: 24, height: 24, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M15.0234 14.3605C13.9788 14.1183 12.5008 13.8321 11 13.5577V18.0001C11 18.5524 10.5523 19.0001 10 19.0001C9.44772 19.0001 9 18.5524 9 18.0001V13.2003C8.45617 13.1054 7.93548 13.0154 7.45996 12.9347C6.04169 12.6938 5 11.468 5 10.0294C5.00026 8.51702 6.1486 7.25322 7.65332 7.10071C9.95832 6.86724 13.2043 6.51694 15.0234 6.23645V14.3605ZM18.0762 4.64953C18.4084 4.32815 18.9996 4.55844 19 5.02063V15.7784C19 16.3352 18.0553 16.5482 17.7422 16.088C17.3274 15.4775 16.8353 14.9343 16.3076 14.7179C16.2822 14.7075 16.2537 14.6986 16.2236 14.6876V6.00207C16.2555 5.9923 16.2843 5.98596 16.3076 5.97668C16.8493 5.76125 17.5333 5.17518 18.0762 4.64953Z" fill="#AFB0B2"/>
+              </svg>
+            </div>
+            {/* 가이드 (?) */}
+            <div style={{ width: 24, height: 24, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M12 4C16.4183 4 20 7.58172 20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4ZM12 15.2002C11.4477 15.2002 11 15.6479 11 16.2002C11.0001 16.7524 11.4478 17.2002 12 17.2002C12.5522 17.2002 12.9999 16.7524 13 16.2002C13 15.6479 12.5523 15.2002 12 15.2002ZM11.999 7.2002C10.3476 7.20063 9.00041 8.48544 9 10.0605C9 10.4915 9.36563 10.8416 9.81738 10.8418C10.2693 10.8418 10.6357 10.4916 10.6357 10.0605C10.6362 9.34756 11.2514 8.76021 11.999 8.75977C12.747 8.75977 13.3629 9.34729 13.3633 10.0605C13.3633 10.4833 13.1374 10.7272 12.6416 11.0488C12.0509 11.4319 11.1819 12.0942 11.1816 13.3594V13.6201C11.1817 14.0508 11.5475 14.4 11.999 14.4004C12.4509 14.4004 12.8183 14.0511 12.8184 13.6201V13.3594C12.8186 12.9189 13.0618 12.665 13.5615 12.3408C14.1565 11.9549 15 11.3026 15 10.0605C14.9996 8.48517 13.6508 7.2002 11.999 7.2002Z" fill="#AFB0B2"/>
+              </svg>
+            </div>
+            {/* 지구본 + 한국어 */}
+            <div style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+              <div style={{ width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 4C16.4179 4.00017 19.999 7.58182 19.999 12C19.999 16.4182 16.418 19.9998 12 20C7.5819 20 4 16.4183 4 12C4.00002 7.58172 7.58191 4 12 4ZM9.39258 15.04C9.55699 15.7032 9.77154 16.2988 10.0244 16.8047C10.6418 18.0396 11.377 18.5596 11.998 18.5596C12.6191 18.5594 13.3534 18.0394 13.9707 16.8047C14.2236 16.2988 14.4391 15.7033 14.6035 15.04H9.39258ZM15.917 15.04C15.7255 15.9085 15.4539 16.6996 15.1152 17.377C14.9745 17.6585 14.8167 17.9278 14.6445 18.1787C16.0945 17.5571 17.2797 16.4396 17.9912 15.04H15.917ZM6.00781 15.04C6.71811 16.4374 7.90083 17.5536 9.34766 18.1758C9.17648 17.9258 9.01999 17.6572 8.87988 17.377C8.54129 16.6996 8.26958 15.9085 8.07812 15.04H6.00781ZM16.1328 10.2402C16.2008 10.8074 16.2373 11.3966 16.2373 12C16.2373 12.6033 16.2008 13.1926 16.1328 13.7598H18.3984C18.427 13.7598 18.4548 13.7649 18.4824 13.7686C18.6358 13.2049 18.7197 12.6122 18.7197 12C18.7197 11.391 18.6372 10.8012 18.4854 10.2402H16.1328ZM5.51367 10.2402C5.36185 10.8012 5.28028 11.391 5.28027 12C5.28027 12.6118 5.36246 13.2043 5.51562 13.7676C5.54288 13.764 5.57041 13.7598 5.59863 13.7598H7.8623C7.79437 13.1926 7.75781 12.6033 7.75781 12C7.75781 11.3967 7.79436 10.8074 7.8623 10.2402H5.51367ZM9.15234 10.2402C9.07858 10.7988 9.03809 11.3884 9.03809 12C9.03809 12.6116 9.07858 13.2012 9.15234 13.7598H14.8438C14.9175 13.2013 14.958 12.6115 14.958 12C14.958 11.3885 14.9175 10.7987 14.8438 10.2402H9.15234ZM14.6436 5.82031C14.816 6.07159 14.9743 6.34107 15.1152 6.62305C15.4539 7.30036 15.7255 8.09149 15.917 8.95996H17.9912C17.2795 7.56002 16.0941 6.44176 14.6436 5.82031ZM9.34863 5.82324C7.90128 6.44531 6.71831 7.56225 6.00781 8.95996H8.07812C8.26958 8.09153 8.54129 7.30035 8.87988 6.62305C9.0202 6.3424 9.17715 6.07351 9.34863 5.82324ZM11.998 5.44043C11.377 5.44043 10.6418 5.9604 10.0244 7.19531C9.77154 7.70116 9.55699 8.29681 9.39258 8.95996H14.6035C14.4391 8.29668 14.2236 7.70123 13.9707 7.19531C13.3534 5.96057 12.6191 5.44058 11.998 5.44043Z" fill="#AFB0B2"/>
+                </svg>
+              </div>
+              <span style={{ fontSize: 12, color: "#222" }}>한국어</span>
+            </div>
+          </div>
+          {/* 디바이더 */}
+          <div style={{ width: 1, height: 12, background: "rgba(0,0,0,0.1)" }} />
+          {/* 계정 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#c4e3f5", overflow: "hidden" }}><img src="data:image/png;base64,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" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 12, color: "#222", lineHeight: "16px" }}>
+              <b style={{ fontWeight: 600 }}>그립 클라우드 마스터</b><span>님</span>
+              <div style={{ marginLeft: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="none" style={{ transform: "rotate(90deg)" }}>
+                  <path d="M2 0L7 4.00519L2 8V0Z" fill="#AFB0B2"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <span style={{ fontSize: 12, color: "#222", cursor: "pointer" }}>로그아웃</span>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+
+        {/* LNB (피그마 기반) */}
+        <div className="lnb-scroll" style={{ width: 220, backgroundColor: C.white, borderRight: "1px solid #f0f0f0", overflowY: "auto", flexShrink: 0, display: "flex", flexDirection: "column" }}>
+          <div style={{ flex: 1, paddingTop: 8 }}>
+            {/* 서비스 선택 (권한 상속) */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px 6px 16px", marginBottom: 4 }}>
+              {/* Grip Cloud 원형 로고 */}
+              <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#003D99", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span style={{ fontSize: 5, fontWeight: 700, color: "#fff", lineHeight: 1, textAlign: "center", letterSpacing: -0.2 }}>Grip<br/>Cloud</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1, minWidth: 0 }}>
+                {/* 왕관 아이콘 */}
+                <svg width="9" height="7" viewBox="0 0 11 9" fill="none" style={{ flexShrink: 0 }}>
+                  <path d="M1.5 7.5H9.5L10.5 3L7.5 5L5.5 1L3.5 5L0.5 3L1.5 7.5Z" fill="#508EFF"/>
+                  <rect x="1.5" y="7.5" width="8" height="1" rx="0.5" fill="#508EFF"/>
+                </svg>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#1677FF", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>그립 클라우드 라이브</span>
+              </div>
+              {/* 셰브론 */}
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+                <path d="M6 4L10 8L6 12" stroke="#1677FF" strokeWidth="1.4" strokeLinecap="square"/>
+              </svg>
+            </div>
+            {/* 메뉴 섹션 */}
+            {lnbSections.map((sec, si) => (
+              <div key={si} style={{ padding: "8px 16px" }}>
+                <div onClick={() => setExpanded(p => ({ ...p, [sec.key]: !p[sec.key] }))} style={{ display: "flex", alignItems: "center", padding: "6px 4px", cursor: "pointer" }}>
+                  <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: "#222", lineHeight: "16px" }}>{sec.title}</span>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ transition: "transform 0.2s", transform: expanded[sec.key] ? "rotate(180deg)" : "rotate(0deg)" }}>
+                    <path d="M5 6.5L8 9.5L11 6.5" stroke="#AFB0B2" strokeWidth="1.4" strokeLinecap="square"/>
+                  </svg>
+                </div>
+                {expanded[sec.key] && sec.items.map((item, ii) => {
+                  const isActive = item === ACTIVE_MENU;
+                  return (
+                    <div key={ii} style={{
+                      padding: "8px 4px", fontSize: 13, lineHeight: "16px", cursor: "pointer", borderRadius: 4,
+                      fontWeight: isActive ? 600 : 400,
+                      color: isActive ? "#222" : "#6c6c6c",
+                      backgroundColor: isActive ? "#E0E8F8" : "transparent",
+                    }}>{item}</div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+          {/* FAQ */}
+          <div style={{ padding: "16px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 4px", cursor: "pointer" }}>
+              <span style={{ fontSize: 13, color: "#888" }}>FAQ</span>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 4H12V10" stroke="#AFB0B2" strokeWidth="1.2" strokeLinecap="round"/>
+                <path d="M12 4L4 12" stroke="#AFB0B2" strokeWidth="1.2" strokeLinecap="round"/>
+              </svg>
+            </div>
+          </div>
+          {/* Copyright */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px" }}>
+            <span style={{ fontSize: 10, color: "#888" }}>© Copyright GRIP 2018 Ltd</span>
+          </div>
+        </div>
+
+        {/* MAIN CONTENT */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", backgroundColor: C.white }}>
+          {/* 페이지 타이틀 바: 높이 60px 고정 */}
+          <div style={{ height: 60, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 24px", backgroundColor: C.white, borderBottom: "1px solid #EEEEEE" }}>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: C.g900 }}>VOD 콘텐츠</h1>
+            <button style={{ padding: "6px 14px", borderRadius: 4, border: "none", backgroundColor: C.primary, fontSize: 12, color: C.white, fontWeight: 400, cursor: "pointer" }}>VOD 콘텐츠 등록</button>
+          </div>
+          <div style={{ flex: 1, padding: "0 24px 24px", overflowY: "auto", backgroundColor: C.white }}>
+
+            {/* 필터 영역 */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", padding: "12px 16px", margin: "16px 0 12px", backgroundColor: C.g50, borderRadius: 4 }}>
+              <span style={{ fontSize: 12, color: C.g800, fontWeight: 500 }}>VOD 타입</span>
+              <select style={{ fontSize: 12, padding: "6px 28px 6px 10px", border: `1px solid ${C.g200}`, borderRadius: 4, color: C.g700, backgroundColor: C.white, minWidth: 120, appearance: "auto" }}>
+                <option>전체</option><option>라이브</option><option>업로드</option>
+              </select>
+              <span style={{ fontSize: 12, color: C.g800, fontWeight: 500 }}>공개여부</span>
+              <select style={{ fontSize: 12, padding: "6px 28px 6px 10px", border: `1px solid ${C.g200}`, borderRadius: 4, color: C.g700, backgroundColor: C.white, minWidth: 120, appearance: "auto" }}>
+                <option>전체</option>
+              </select>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, border: `1px solid ${C.g200}`, borderRadius: 4, backgroundColor: C.white, padding: "0 8px" }}>
+                <select style={{ fontSize: 12, padding: "6px 4px", border: "none", color: C.g700, appearance: "auto", backgroundColor: "transparent" }}>
+                  <option>등록일시</option>
+                </select>
+                <span style={{ color: C.g200 }}>|</span>
+                <input type="text" value="2025/03/05" readOnly style={{ fontSize: 12, padding: "6px 4px", border: "none", width: 80, color: C.g700, backgroundColor: "transparent" }} />
+                <span style={{ fontSize: 12, color: C.g400 }}>~</span>
+                <input type="text" value="2026/03/05" readOnly style={{ fontSize: 12, padding: "6px 4px", border: "none", width: 80, color: C.g700, backgroundColor: "transparent" }} />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, border: `1px solid ${C.g200}`, borderRadius: 4, backgroundColor: C.white, padding: "0 8px", flex: 1, minWidth: 200 }}>
+                <select style={{ fontSize: 12, padding: "6px 4px", border: "none", color: C.g700, appearance: "auto", backgroundColor: "transparent" }}>
+                  <option>제목</option>
+                </select>
+                <span style={{ color: C.g200 }}>|</span>
+                <input type="text" placeholder="검색어를 입력하세요." style={{ fontSize: 12, padding: "6px 4px", border: "none", flex: 1, color: C.g700, backgroundColor: "transparent", outline: "none" }} />
+              </div>
+              {/* 검색 (필타입) */}
+              <button style={{ width: 32, height: 32, border: "none", borderRadius: 4, backgroundColor: C.g800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+              </button>
+              {/* 초기화 (라인타입) */}
+              <button style={{ width: 32, height: 32, border: `1px solid ${C.g200}`, borderRadius: 4, backgroundColor: C.white, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.g800} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+              </button>
+            </div>
+
+            {/* 삭제 + 페이징 툴바 */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <button disabled style={{ padding: "5px 12px", borderRadius: 4, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 12, color: C.g400, cursor: "not-allowed" }}>삭제</button>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 12, color: C.g500 }}>총 61개</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <span style={{ fontSize: 12, color: C.g300, padding: "2px 6px" }}>&lt;</span>
+                  <span style={{ fontSize: 12, color: C.primary, backgroundColor: C.white, padding: "2px 8px", borderRadius: 4, fontWeight: 600, border: `1px solid ${C.primary}` }}>1</span>
+                  {[2,3,4].map(n => <span key={n} style={{ fontSize: 12, color: C.g500, padding: "2px 8px", cursor: "pointer", border: `1px solid ${C.g200}`, borderRadius: 4 }}>{n}</span>)}
+                  <span style={{ fontSize: 12, color: C.g500, padding: "2px 6px", cursor: "pointer" }}>&gt;</span>
+                </div>
+                <select style={{ fontSize: 12, padding: "4px 8px", border: `1px solid ${C.g200}`, borderRadius: 4, color: C.g600, appearance: "auto" }}>
+                  <option>20 / 페이지</option>
+                </select>
+                <button style={{ padding: "5px 12px", borderRadius: 4, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 12, color: C.g600, cursor: "pointer" }}>서비스 사용량</button>
+                <button style={{ padding: "5px 12px", borderRadius: 4, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 12, color: C.g600, cursor: "pointer" }}>VOD 목록 다운로드</button>
+              </div>
+            </div>
+
+            {/* 테이블 (운영 HTML 구조 기반) */}
+            <div style={{ backgroundColor: C.white, border: `1px solid ${C.g200}`, overflow: "auto" }}>
+              <table style={{ width: "100%", minWidth: 1200, borderCollapse: "collapse", tableLayout: "fixed" }}>
+                <colgroup>
+                  <col style={{ width: 32 }} />
+                  <col style={{ width: 80 }} />
+                  <col style={{ width: 120 }} />
+                  <col />
+                  <col style={{ width: 140 }} />
+                  <col style={{ width: 150 }} />
+                  <col style={{ width: 140 }} />
+                  <col style={{ width: 120 }} />
+                  <col style={{ width: 120 }} />
+                </colgroup>
+                <thead>
+                  <tr style={{ backgroundColor: "#FAFAFA", borderBottom: `1px solid ${C.g200}` }}>
+                    <th style={{ padding: "10px 8px", textAlign: "center" }}><input type="checkbox" style={{ width: 14, height: 14 }} /></th>
+                    <th style={{ padding: "10px 8px" }}></th>
+                    <th style={{ padding: "10px 8px", fontSize: 12, fontWeight: 700, color: C.g500, textAlign: "center" }}>커버 이미지</th>
+                    <th style={{ padding: "10px 8px", fontSize: 12, fontWeight: 700, color: C.g500 }}>제목</th>
+                    <th style={{ padding: "10px 8px", fontSize: 12, fontWeight: 700, color: C.g500, textAlign: "center" }}>VOD라이브</th>
+                    <th style={{ padding: "10px 8px", fontSize: 12, fontWeight: 700, color: C.g500, textAlign: "center" }}>쇼츠</th>
+                    <th style={{ padding: "10px 8px", fontSize: 12, fontWeight: 700, color: C.g500, textAlign: "center" }}>채널 아이디</th>
+                    <th style={{ padding: "10px 8px", fontSize: 12, fontWeight: 700, color: C.g500, textAlign: "center" }}>시작일시</th>
+                    <th style={{ padding: "10px 8px", fontSize: 12, fontWeight: 700, color: C.g500, textAlign: "center" }}>등록일시</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {baseRows.map((row) => {
+                    const isHighlight = row.id === highlightId;
+                    return (
+                      <tr key={row.id} data-row-id={row.id} style={{
+                        borderBottom: `1px solid ${C.g100}`,
+                        backgroundColor: C.white,
+                        outline: isHighlight ? `2px solid ${C.primary}` : "none",
+                        outlineOffset: -2,
+                        transition: "all 0.2s",
+                      }}>
+                        {/* 체크박스 */}
+                        <td style={{ padding: "12px 8px", textAlign: "center", verticalAlign: "middle" }}><input type="checkbox" style={{ width: 14, height: 14 }} /></td>
+
+                        {/* 수정/결과 버튼 */}
+                        <td style={{ padding: "16px 5px", verticalAlign: "middle" }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <button style={{ padding: "4px 6px", borderRadius: 4, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 11, color: C.g600, cursor: "pointer", whiteSpace: "nowrap" }}>수정</button>
+                            <button style={{ padding: "4px 6px", borderRadius: 4, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 11, color: C.g600, cursor: "pointer", display: "flex", alignItems: "center", gap: 2, justifyContent: "center", whiteSpace: "nowrap" }}>결과 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+                          </div>
+                        </td>
+
+                        {/* 커버 이미지 (9:16) */}
+                        <td style={{ padding: "16px 5px", textAlign: "center", verticalAlign: "middle" }}>
+                          <img src={row.cover || COVER} alt="" style={{ width: 62, height: 110, borderRadius: 4, objectFit: "contain", border: "1px solid #eee", backgroundColor: "#f9f9f9", display: "block", margin: "0 auto" }} />
+                        </td>
+
+                        {/* 제목 + 배지 */}
+                        <td style={{ padding: "12px 8px", verticalAlign: "middle" }}>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 4 }}>
+                            {row.typeBadges.map((b, bi) => {
+                              const badgeColors = { blue: { bg: "rgba(106,161,255,0.2)", c: "#1677FF" }, red: { bg: "rgba(245,34,45,0.15)", c: "#F5222D" }, gray: { bg: "#F5F5F5", c: "#8C8C8C" }, green: { bg: "rgba(128,226,126,0.2)", c: "#4CAF50" } };
+                              const bc = badgeColors[b.color] || badgeColors.gray;
+                              return <span key={bi} style={{ fontSize: 10, padding: "3px 12px", borderRadius: 4, backgroundColor: bc.bg, color: bc.c, fontWeight: 700 }}>{b.label}</span>;
+                            })}
+                            {row.subtitleStatus && <SubtitleBadge status={row.subtitleStatus} />}
+                          </div>
+                          <div style={{ fontSize: 13, color: C.g800, fontWeight: 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.5 }}>
+                            {row.title}
+                          </div>
+                        </td>
+
+                        {/* VOD라이브 */}
+                        <td style={{ padding: "12px 8px", textAlign: "center", verticalAlign: "middle" }}>
+                          <button disabled={!row.vodLiveEnabled} style={{ padding: "6px 10px", borderRadius: 4, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 13, color: row.vodLiveEnabled ? C.g700 : C.g400, cursor: row.vodLiveEnabled ? "pointer" : "default" }}>VOD라이브</button>
+                        </td>
+
+                        {/* 쇼츠 */}
+                        <td style={{ padding: "12px 8px", textAlign: "center", verticalAlign: "middle" }}>
+                          <button disabled style={{ padding: "6px 8px", borderRadius: 4, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 12, color: C.g400, cursor: "default" }}>AI 쇼츠 만들기</button>
+                        </td>
+
+                        {/* 채널 아이디 */}
+                        <td style={{ padding: "12px 8px", textAlign: "center", verticalAlign: "middle" }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
+                            <button style={{ padding: "4px 8px", borderRadius: 4, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 11, color: C.g600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>아이디 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#777" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+                            <button style={{ padding: "4px 8px", borderRadius: 4, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 11, color: C.g600, cursor: "pointer" }}>URL/설치</button>
+                          </div>
+                        </td>
+
+                        {/* 시작일시 */}
+                        <td style={{ padding: "12px 8px", fontSize: 12, color: C.g500, textAlign: "center", verticalAlign: "middle" }}>{row.startDate}</td>
+
+                        {/* 등록일시 */}
+                        <td style={{ padding: "12px 8px", fontSize: 12, color: C.g500, textAlign: "center", verticalAlign: "middle" }}>{row.regDate}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* 시나리오 전환 (어드민 UI 밖) */}
+      <div style={{ borderTop: `2px solid ${C.g300}`, backgroundColor: "#FAFAFA", padding: "16px 24px", flexShrink: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: C.g900, marginBottom: 4 }}>시나리오 전환</div>
+        <div style={{ fontSize: 12, color: C.g400, marginBottom: 16 }}>시나리오 버튼 클릭 시 해당 행이 하이라이트됩니다.</div>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          {scenarios.map((sc, i) => (
+            <button key={i} onClick={() => setActiveScenario(i)} style={{
+              padding: "10px 16px", borderRadius: 8, cursor: "pointer", textAlign: "left",
+              border: activeScenario === i ? `2px solid ${C.primary}` : `1px solid ${C.g200}`,
+              backgroundColor: activeScenario === i ? C.primaryLight : C.white, flex: "1 1 280px",
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: activeScenario === i ? C.primary : C.g700, marginBottom: 4 }}>{sc.name}</div>
+              <div style={{ fontSize: 11, color: C.g400, lineHeight: 1.5 }}>{sc.desc}</div>
+              {i === 0 && (
+                <div style={{ fontSize: 11, color: C.g500, marginTop: 6, lineHeight: 1.5 }}>
+                  <div>VOD 타입: <strong style={{ color: C.blue600 }}>라이브</strong> | 자막: <strong style={{ color: C.amber700 }}>자막 생성중</strong> (펄스 애니메이션)</div>
+                  <div>변환 완료 후 자막 생성이 진행 중인 상태를 목록에서 확인 가능</div>
+                </div>
+              )}
+              {i === 1 && (
+                <div style={{ fontSize: 11, color: C.g500, marginTop: 6, lineHeight: 1.5 }}>
+                  <div>VOD 타입: <strong style={{ color: C.blue600 }}>라이브</strong> | 자막: <strong style={{ color: C.green700 }}>자막 생성완료</strong></div>
+                  <div>상세 진입 없이 목록에서 자막 완료 여부 확인 가능</div>
+                </div>
+              )}
+              {i === 2 && (
+                <div style={{ fontSize: 11, color: C.g500, marginTop: 6, lineHeight: 1.5 }}>
+                  <div>VOD 타입: <strong style={{ color: C.blue600 }}>업로드</strong> | 자막: <strong style={{ color: C.red600 }}>자막 생성실패</strong></div>
+                  <div>자막 생성 실패 시 에러 배지로 노출되어 결과 확인 후 관리자 문의 필요 (자체 재시도 지원 안함)</div>
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById("root"));
+</script>
+</body>
+</html>
