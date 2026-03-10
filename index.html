@@ -468,11 +468,31 @@
 <script>
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   //  프로토타입 목록 - 새 항목 추가 시 여기만 수정
+  //  ※ 최신순 정렬: 새로운 스펙은 항상 맨 위에 추가
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   const prototypes = [
     {
       section: '진행 중',
       groups: [
+        {
+          feature: 'AI 챗봇',
+          tag: '신규',
+          jira: 'PSC-2601',
+          children: [
+            {
+              title: '라이브 일정 등록/수정',
+              file: 'ai-chatbot_admin_live-schedule.html',
+              path: 'ai-chatbot/admin-live-schedule',
+              date: '2026.03.10',
+            },
+            // {
+            //   title: '플레이어 - AI 챗봇 채팅 디자인',
+            //   file: 'ai-chatbot_player.html',
+            //   path: 'ai-chatbot/player',
+            //   date: '2026.03.10',
+            // },
+          ],
+        },
         {
           feature: 'VOD 자동자막',
           tag: '신규',
