@@ -206,6 +206,7 @@ function PlayerSubtitlePrototype() {
   const [likeGoal, setLikeGoal] = useState(1000);
   const [hearts, setHearts] = useState([]);
   const heartIdRef = useRef(0);
+  const videoRef = useRef(null);
   const [noti, setNoti] = useState(null);
   const [likeEvent, setLikeEvent] = useState(true);
 
@@ -294,7 +295,11 @@ function PlayerSubtitlePrototype() {
 
   const handlePauseClick = (e) => {
     e.stopPropagation();
-    setVodPaused(p => !p);
+    setVodPaused(p => {
+      const next = !p;
+      if (videoRef.current) { next ? videoRef.current.pause() : videoRef.current.play(); }
+      return next;
+    });
     setPlaying(p => !p);
   };
 
@@ -328,7 +333,7 @@ function PlayerSubtitlePrototype() {
         {/* ─── 플레이어 ─── */}
         <div style={{ flex: "0 0 320px" }}>
           <div style={{ width: "100%", aspectRatio: "9/16", borderRadius: 16, backgroundColor: "#1a1a1a", position: "relative", overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.15)", cursor: "pointer" }} onClick={handleAreaTap}>
-            <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${BG_IMG})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+            <video src="https://kate-grip.github.io/prototypes/Cake_Rotation_Video_Generation.mp4" autoPlay loop muted playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} ref={videoRef} />
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "20%", backgroundImage: "linear-gradient(180deg, rgba(0,0,0,0.25) 0%, transparent 100%)", zIndex: 1 }} />
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "35%", backgroundImage: "linear-gradient(0deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%)", zIndex: 1 }} />
 
