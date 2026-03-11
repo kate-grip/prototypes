@@ -1585,8 +1585,11 @@ function SubtitleEditorModal({ onClose }) {
 // ─── 메인 ───
 
 
-// ─── 수정 내역 ───
+// --- 수정 내역 ---
 const CHANGELOG = [
+  { date: "2026.03.11", items: [
+    "라이브 종료 후 [자막 확인 및 수정] 버튼 시나리오 제거 (추후 VOD 라이브에 자막 노출 스펙에서 추가될 예정)",
+  ]},
   { date: "2026.03.05", items: ["최초 공유"] },
 ];
 
@@ -1617,6 +1620,7 @@ function ChangelogModal({ onClose }) {
     </div>
   );
 }
+
 function LiveSchedulePrototype() {
   const [autoSub, setAutoSub] = useState(false);
   const [expose, setExpose] = useState(true);
@@ -1695,23 +1699,23 @@ function LiveSchedulePrototype() {
           <h2 style={{ fontSize: 16, fontWeight: 700, color: C.g900, margin: "0 0 24px" }}>기본 정보</h2>
 
           <FormRow label="라이브 타입" required>
-            <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14, color: C.g800 }}>
-                <span style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${C.primary}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: C.primary }} />
+            <div style={{ display: "flex", gap: 24, alignItems: "center", pointerEvents: status === "complete" ? "none" : "auto" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: status === "complete" ? "default" : "pointer", fontSize: 14, color: status === "complete" ? C.g400 : C.g800 }}>
+                <span style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${status === "complete" ? C.g300 : C.primary}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: status === "complete" ? C.g300 : C.primary }} />
                 </span>
                 실시간 라이브
               </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14, color: C.g800 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: status === "complete" ? "default" : "pointer", fontSize: 14, color: status === "complete" ? C.g400 : C.g800 }}>
                 <span style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${C.g300}`, display: "flex", alignItems: "center", justifyContent: "center" }} />
                 VOD라이브
               </label>
             </div>
           </FormRow>
 
-          <div style={{ marginBottom: 24, marginLeft: LABEL_W }}>
-            <button style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 13, color: C.g800, cursor: "pointer" }}>등록할 라이브 정보 불러오기</button>
-            <div style={{ fontSize: 12, color: C.primary, marginTop: 6, lineHeight: 1.5 }}>기존에 등록된 라이브 정보를 불러와 신규 라이브로 저장할 수 있습니다.</div>
+          <div style={{ marginBottom: 24, marginLeft: LABEL_W, pointerEvents: status === "complete" ? "none" : "auto" }}>
+            <button style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${status === "complete" ? C.g200 : C.g200}`, backgroundColor: status === "complete" ? C.g50 : C.white, fontSize: 13, color: status === "complete" ? C.g400 : C.g800, cursor: status === "complete" ? "default" : "pointer" }}>등록할 라이브 정보 불러오기</button>
+            <div style={{ fontSize: 10, color: status === "complete" ? C.g400 : C.primary, marginTop: 6, lineHeight: 1.5 }}>기존에 등록된 라이브 정보를 불러와 신규 라이브로 저장할 수 있습니다.</div>
           </div>
 
           <FormRow label="제목" required>
@@ -1722,25 +1726,25 @@ function LiveSchedulePrototype() {
           </FormRow>
 
           <FormRow label="예정일시" required labelTop>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, pointerEvents: status === "complete" ? "none" : "auto" }}>
               <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: C.g800, marginBottom: 4 }}>시작일</div>
-                  <div style={{ border: `1px solid ${C.g200}`, borderRadius: 6, padding: "9px 12px", fontSize: 13, color: C.g800, minWidth: 140 }}>2026-03-12</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: status === "complete" ? C.g400 : C.g800, marginBottom: 4 }}>시작일</div>
+                  <div style={{ border: `1px solid ${C.g200}`, borderRadius: 6, padding: "9px 12px", fontSize: 13, color: status === "complete" ? C.g400 : C.g800, backgroundColor: status === "complete" ? C.g50 : C.white, minWidth: 140 }}>2026-03-12</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: C.g800, marginBottom: 4 }}>시작시간</div>
-                  <div style={{ border: `1px solid ${C.g200}`, borderRadius: 6, padding: "9px 12px", fontSize: 13, color: C.g800, minWidth: 80 }}>19:00</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: status === "complete" ? C.g400 : C.g800, marginBottom: 4 }}>시작시간</div>
+                  <div style={{ border: `1px solid ${C.g200}`, borderRadius: 6, padding: "9px 12px", fontSize: 13, color: status === "complete" ? C.g400 : C.g800, backgroundColor: status === "complete" ? C.g50 : C.white, minWidth: 80 }}>19:00</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: C.g800, marginBottom: 4 }}>진행시간</div>
-                  <div style={{ border: `1px solid ${C.g200}`, borderRadius: 6, padding: "9px 12px", fontSize: 13, color: C.g800, minWidth: 80, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: status === "complete" ? C.g400 : C.g800, marginBottom: 4 }}>진행시간</div>
+                  <div style={{ border: `1px solid ${C.g200}`, borderRadius: 6, padding: "9px 12px", fontSize: 13, color: status === "complete" ? C.g400 : C.g800, backgroundColor: status === "complete" ? C.g50 : C.white, minWidth: 80, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                     <span>60분</span>
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke={C.g500} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke={status === "complete" ? C.g300 : C.g500} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </div>
                 </div>
               </div>
-              <div style={{ fontSize: 12, color: C.primary, lineHeight: 1.5 }}>방송일시는 오늘 날짜 +7일 현재 시간의 +1시간 기본 설정되어있습니다.</div>
+              <div style={{ fontSize: 10, color: status === "complete" ? C.g400 : C.primary, lineHeight: 1.5 }}>방송일시는 오늘 날짜 +7일 현재 시간의 +1시간 기본 설정되어있습니다.</div>
             </div>
           </FormRow>
 
@@ -1774,6 +1778,7 @@ function LiveSchedulePrototype() {
               </div>
               <Toggle enabled={autoSub} onChange={handleAutoToggle} disabled={status === "complete"} />
               {status !== "idle" && <Badge status={status} />}
+              {/* [VOD 라이브 고도화 시 활성화] 자막 확인 및 수정 버튼
               {autoSub && status === "complete" && (
                 <button onClick={() => setShowModal(true)} style={{
                   marginLeft: "auto", padding: "4px 12px", borderRadius: 6,
@@ -1787,6 +1792,7 @@ function LiveSchedulePrototype() {
                   자막 확인 및 수정
                 </button>
               )}
+              */}
             </div>
 
             {/* 자동자막 ON 시 안내 */}
@@ -1805,7 +1811,26 @@ function LiveSchedulePrototype() {
                   <span style={{ fontSize: 13, fontWeight: 500, color: C.g700 }}>자막 노출</span>
                   <TooltipIcon text="자막 생성 완료 시 시청자 플레이어에서 자막 노출 여부를 제어합니다." />
                 </div>
-                <Toggle enabled={expose} onChange={(v) => { setExpose(v); if (autoSub) setActiveScenario(v ? 2 : 3); }} />
+                <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+                  <Toggle enabled={expose} onChange={(v) => { if (status === "complete") return; setExpose(v); if (autoSub) setActiveScenario(v ? 2 : 3); }} disabled={status === "complete"} />
+                  {status === "complete" && (
+                    <div
+                      style={{ position: "absolute", left: 0, top: 0, width: 44, height: 24, cursor: "not-allowed", zIndex: 2 }}
+                      onMouseEnter={(e) => { const tip = e.currentTarget.nextSibling; if(tip) tip.style.opacity = 1; }}
+                      onMouseLeave={(e) => { const tip = e.currentTarget.nextSibling; if(tip) tip.style.opacity = 0; }}
+                    />
+                  )}
+                  {status === "complete" && (
+                    <div style={{
+                      position: "absolute", left: 50, top: "50%", transform: "translateY(-50%)",
+                      backgroundColor: C.g800, color: C.white, fontSize: 11, padding: "6px 10px",
+                      borderRadius: 6, whiteSpace: "nowrap", opacity: 0, transition: "opacity 0.15s",
+                      pointerEvents: "none", zIndex: 10,
+                    }}>
+                      해당 VOD 수정 페이지에서 노출 여부 변경 가능합니다
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -1987,11 +2012,16 @@ function LiveSchedulePrototype() {
             {activeScenario === 4 && (
               <div style={{ fontSize: 12, color: C.g600, lineHeight: 1.8 }}>
                 <div>페이지: <strong style={{ color: C.g700 }}>라이브 일정 수정 (라이브 종료)</strong></div>
-                <div>자동자막 사용: <strong style={{ color: C.primary }}>ON</strong> (토글 비활성화) | 뱃지: <strong style={{ color: C.green600 }}>자막 생성완료</strong> | "자막 확인 및 수정" 버튼 노출</div>
+                <div>자동자막 사용: <strong style={{ color: C.primary }}>ON</strong> (토글 비활성화) | 뱃지: <strong style={{ color: C.green600 }}>자막 생성완료</strong></div>
                 <div>자막 노출: <strong style={{ color: C.primary }}>ON</strong> — 시청자에게 자막 노출 중</div>
                 <div>미리보기 자막: <strong style={{ color: C.primary }}>표시됨</strong></div>
                 <div style={{ marginTop: 6, padding: "6px 10px", backgroundColor: "#F0F9FF", borderRadius: 4, fontSize: 11, color: C.g600, lineHeight: 1.7 }}>
-                  라이브 종료 후 VOD 변환 및 자막 생성이 완료된 상태입니다. 자동자막 사용 토글은 비활성화되며, 자막 확인 및 수정 버튼을 통해 자막 내용을 수정할 수 있습니다. 이 기능은 VOD 콘텐츠 수정 페이지의 자막 생성완료 상태와 동일하며, 어느 메뉴에서 접근하든 동일한 자막 편집 기능이 제공됩니다. 멀티 로그인 환경에서는 마지막으로 저장 성공한 것을 Override 합니다.
+                  라이브 종료 후 VOD 변환 및 자막 생성이 완료된 상태입니다. 자동자막 사용 토글은 비활성화됩니다. 멀티 로그인 환경에서는 마지막으로 저장 성공한 것을 Override 합니다.
+                </div>
+                <div style={{ marginTop: 8, padding: "8px 10px", backgroundColor: "#FFF7ED", border: "1px solid #FDBA74", borderRadius: 4, fontSize: 11, color: "#9A3412", lineHeight: 1.7 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 2 }}>라이브 타입별 자막 확인 및 수정 정책</div>
+                  <div>- 실시간 라이브: 자막 확인 및 수정 버튼 비노출. VOD 콘텐츠 수정 페이지에서 접근</div>
+                  <div>- VOD 라이브 (추후 고도화): 원본 VOD의 자막을 복사하여 가져오며, 원본을 직접 수정하지 않고 자막 확인 및 수정 버튼을 통해 복사본을 별도 편집</div>
                 </div>
               </div>
             )}
