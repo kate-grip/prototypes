@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VOD 자동자막 — 플레이어 자막 노출 가이드</title>
+<title>[플레이어] 자막 노출 가이드</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -94,7 +94,7 @@ function HeartParticle({ id, onDone }) {
 }
 
 // ─── Noti (Slide in 좌→우, 3초 유지, Fade Out) ───
-function Noti({ text, onDone }) {
+function Noti({ text, onDone, bottom }) {
   const [phase, setPhase] = useState("enter");
   useEffect(() => {
     const t1 = setTimeout(() => setPhase("visible"), 50);
@@ -107,9 +107,11 @@ function Noti({ text, onDone }) {
   const tr = phase === "exit" ? "opacity 0.6s ease" : "transform 0.4s cubic-bezier(0.16,1,0.3,1)";
   return (
     <div style={{
-      position: "absolute", left: 10, bottom: "50%", zIndex: 6,
+      position: "absolute", left: 10, bottom: bottom || "50%", zIndex: 6,
       transform: tx, opacity: op, transition: tr,
-      background: "rgba(0,0,0,0.3)", borderRadius: 8, padding: "8px 14px",
+      background: "rgba(0,0,0,0.3)", borderRadius: 4, padding: "4px 8px",
+      border: "1px solid rgba(255,255,255,0.4)",
+      boxSizing: "border-box",
       maxWidth: "70%", pointerEvents: "none",
     }}>
       <div style={{ fontSize: 12, fontWeight: 600, color: C.white, lineHeight: 1.4 }} dangerouslySetInnerHTML={{ __html: text }} />
@@ -209,6 +211,48 @@ function PlayerSubtitlePrototype() {
   const videoRef = useRef(null);
   const [noti, setNoti] = useState(null);
   const [likeEvent, setLikeEvent] = useState(true);
+  const notiQueueRef = useRef([]);
+  const notiActiveRef = useRef(false);
+
+  // 입장 노티 더미데이터
+  const ENTRANCE_NOTIS = [
+    "딸기공주님이 들어왔습니다.",
+    "초코덕후님 외 3명이 들어왔습니다.",
+    "베이킹마스터님이 들어왔습니다.",
+    "달콤한오후님 외 7명이 들어왔습니다.",
+    "케이크요정님이 들어왔습니다.",
+    "디저트러버님 외 10명이 들어왔습니다.",
+    "맛집탐험가님 외 2명이 들어왔습니다.",
+    "홈카페족님이 들어왔습니다.",
+    "생크림맛집님 외 5명이 들어왔습니다.",
+  ];
+  const entranceIdxRef = useRef(0);
+
+  const showNextNoti = useCallback(() => {
+    if (notiQueueRef.current.length > 0 && !notiActiveRef.current) {
+      notiActiveRef.current = true;
+      const next = notiQueueRef.current.shift();
+      setNoti(next);
+    }
+  }, []);
+
+  const handleNotiDone = useCallback(() => {
+    setNoti(null);
+    notiActiveRef.current = false;
+    setTimeout(showNextNoti, 300);
+  }, [showNextNoti]);
+
+  // 입장 노티 자동 발생 (LIVE 모드에서만, 5초 간격)
+  useEffect(() => {
+    if (mode !== "live" || !playing) return;
+    const t = setInterval(() => {
+      const msg = ENTRANCE_NOTIS[entranceIdxRef.current % ENTRANCE_NOTIS.length];
+      entranceIdxRef.current++;
+      notiQueueRef.current.push(msg);
+      showNextNoti();
+    }, 5000);
+    return () => clearInterval(t);
+  }, [mode, playing, showNextNoti]);
 
   // 모드 전환 시 리셋
   useEffect(() => {
@@ -248,7 +292,8 @@ function PlayerSubtitlePrototype() {
   useEffect(() => {
     if (likeCount >= 1000 && !noti1000Shown && likeEvent) {
       setNoti1000Shown(true);
-      setNoti("❤️ 1,000번째 좋아요 클릭<br/>kate****님");
+      notiQueueRef.current.unshift("❤️ 1,000번째 좋아요 클릭<br/>kate****님");
+      showNextNoti();
       setTimeout(() => setLikeGoal(2000), 500);
     }
   }, [likeCount, noti1000Shown]);
@@ -304,7 +349,8 @@ function PlayerSubtitlePrototype() {
   };
 
   // 자막 위치: UI 숨김 시 하단 10%
-  const subtitleBottom = uiVisible ? "45%" : "10%";
+  const subtitleBottom = uiVisible ? 234 : "10%";
+  const notiBottom = subtitleOn ? 288 : 232;
 
   const currentSub = SUBS[currentIdx];
 
@@ -324,7 +370,7 @@ function PlayerSubtitlePrototype() {
 
       {/* TOP BAR */}
       <div style={{ height: 48, backgroundColor: C.white, borderBottom: `1px solid ${C.g200}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px" }}>
-        <span style={{ fontSize: 15, fontWeight: 700, color: C.g900 }}>플레이어 자막 노출 가이드</span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: C.g900 }}>[플레이어] 자막 노출 가이드</span>
         <div style={{ fontSize: 12, color: C.g400 }}>VOD 자동자막 — 시청자 화면</div>
       </div>
 
@@ -338,7 +384,7 @@ function PlayerSubtitlePrototype() {
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "35%", backgroundImage: "linear-gradient(0deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%)", zIndex: 1 }} />
 
             {/* 상단 */}
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0, padding: "10px 10px 0", zIndex: 2, opacity: uiVisible ? 1 : 0, transition: "opacity 0.3s ease", pointerEvents: uiVisible ? "auto" : "none" }}>
+            <div onClick={e => e.stopPropagation()} style={{ position: "absolute", top: 0, left: 0, right: 0, padding: "10px 10px 0", zIndex: 2, opacity: uiVisible ? 1 : 0, transition: "opacity 0.3s ease", pointerEvents: uiVisible ? "auto" : "none" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                 <div style={{ fontSize: 8, color: "rgba(255,255,255,0.6)" }}>Powered by <span style={{ fontWeight: 600 }}>Grip</span></div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -386,7 +432,8 @@ function PlayerSubtitlePrototype() {
             </div>
 
             {/* Noti (좋아요 이벤트 달성) */}
-            {noti && <Noti text={noti} onDone={() => setNoti(null)} />}
+            {/* Noti (입장/좋아요 이벤트) — UI 숨김 시 비노출 */}
+            {noti && uiVisible && <Noti text={noti} onDone={handleNotiDone} bottom={notiBottom} />}
 
             {/* VOD 일시정지 버튼 — 중앙, 3초 후 fade out */}
             {mode === "vod" && showPauseBtn && (
@@ -430,17 +477,17 @@ function PlayerSubtitlePrototype() {
               </div>
             )}
 
-            {/* 자막 오버레이 — 채팅 위, Progress Bar 좌측 */}
+            {/* 자막 오버레이 — 고정 높이(2줄 기준), 1줄 시 세로 중앙정렬 */}
             {subtitleOn && (
-              <div key={currentIdx} style={{ position: "absolute", bottom: subtitleBottom, left: 0, right: 0, display: "flex", justifyContent: "center", animation: "subtitleFade 0.3s ease", zIndex: 3 }}>
-                <div style={{ backgroundColor: "rgba(0,0,0,0.65)", borderRadius: 4, padding: "5px 12px", fontSize: 13, color: C.white, lineHeight: 1.5, textAlign: "center", maxWidth: "90%" }}>
+              <div style={{ position: "absolute", bottom: subtitleBottom, left: 0, right: 0, height: 50, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 3 }}>
+                <div key={currentIdx} style={{ backgroundColor: "rgba(0,0,0,0.65)", borderRadius: 4, padding: "5px 12px", fontSize: 13, color: C.white, lineHeight: 1.5, textAlign: "center", maxWidth: "90%", animation: "subtitleFade 0.3s ease" }}>
                   {currentSub.text}
                 </div>
               </div>
             )}
 
             {/* 채팅 */}
-            <div style={{ position: "absolute", bottom: 95, left: 10, right: 50, height: 135, opacity: uiVisible ? 1 : 0, transition: "opacity 0.3s ease", pointerEvents: uiVisible ? "auto" : "none", overflow: "hidden", zIndex: 2, display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 2, maskImage: "linear-gradient(to bottom, transparent 0%, black 25%)", WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 25%)" }}>
+            <div onClick={e => e.stopPropagation()} style={{ position: "absolute", bottom: 95, left: 10, right: 50, height: 135, opacity: uiVisible ? 1 : 0, transition: "opacity 0.3s ease", pointerEvents: uiVisible ? "auto" : "none", overflow: "hidden", zIndex: 2, display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 2, maskImage: "linear-gradient(to bottom, transparent 0%, black 25%)", WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 25%)" }}>
               {visibleChats.map((msg) => (
                 <div key={msg.key} style={{
                   padding: "1px 0", fontSize: 12, lineHeight: 1.4,
@@ -460,7 +507,7 @@ function PlayerSubtitlePrototype() {
             </div>
 
             {/* 좋아요 Progress Bar — 우측 X버튼 마진에 맞춤 */}
-            <div onClick={handleHeartClick} style={{ position: "absolute", right: 10, bottom: 11, zIndex: 4, cursor: "pointer", opacity: uiVisible ? 1 : 0, transition: "opacity 0.3s ease" }}>
+            <div onClick={(e) => { e.stopPropagation(); handleHeartClick(); }} style={{ position: "absolute", right: 10, bottom: 11, zIndex: 4, cursor: "pointer", opacity: uiVisible ? 1 : 0, transition: "opacity 0.3s ease" }}>
               <LikeProgressBar current={likeCount} goal={likeGoal} likeEvent={likeEvent} />
             </div>
 
@@ -471,7 +518,7 @@ function PlayerSubtitlePrototype() {
 
 
             {/* 공지사항 — 롤링 */}
-            <div style={{ position: "absolute", bottom: 56, left: 10, right: 50, zIndex: 2, opacity: uiVisible ? 1 : 0, transition: "opacity 0.3s ease" }}>
+            <div onClick={e => e.stopPropagation()} style={{ position: "absolute", bottom: 56, left: 10, right: 50, zIndex: 2, opacity: uiVisible ? 1 : 0, transition: "opacity 0.3s ease" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 8, overflow: "hidden" }}>
                 <img src={"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEwLjgwNjIgMTAuNjcxOEM5LjkzMTkgMTAuNDcyIDguNzMxMzQgMTAuMjM4NSA3LjQ4MjkxIDEwLjAxMDZWMTMuMzUxNUM3LjQ4MjY2IDEzLjk2MzEgNi45ODcxNCAxNC40NTg3IDYuMzc1NDkgMTQuNDU4OUM1Ljc2MzczIDE0LjQ1ODkgNS4yNjczNCAxMy45NjMyIDUuMjY3MDkgMTMuMzUxNVY5LjYxOTAzQzQuNzMxMzcgOS41MjY3NiA0LjIxODQ0IDkuNDM5OTQgMy43NTM0MiA5LjM2MjJDMi40NTUwNyA5LjE0NDk0IDEuNDk5NTEgOC4wMjQzNCAxLjQ5OTUxIDYuNzA3OUMxLjQ5OTYzIDUuMzI0ODggMi41NTEwOSA0LjE2OTU0IDMuOTI3MjUgNC4wMzIxMkM2LjA2OTEzIDMuODE4NSA5LjEwNzE3IDMuNDk3MjYgMTAuODA2MiAzLjIzOTE1VjEwLjY3MThaTTEzLjU3NTcgMS44NDc1NUMxMy45MTEgMS41MzE2IDE0LjQ5OTQgMS43NjM4MSAxNC40OTk1IDIuMjI0NVYxMS43NzMzQzE0LjQ5OTMgMTIuMzI4NyAxMy41NDg4IDEyLjU0NzEgMTMuMjIxMiAxMi4wOTg1QzEyLjg2MDMgMTEuNjA0NSAxMi40NDM3IDExLjE3OTQgMTEuOTk5NSAxMC45OTk5QzExLjk3NTcgMTAuOTkwMyAxMS45NDg3IDEwLjk4MTcgMTEuOTIwNCAxMC45NzE2VjMuMDIzMzNDMTEuOTUwNCAzLjAxNDMgMTEuOTc3NiAzLjAwODQ0IDExLjk5OTUgMi45OTk4OUMxMi40ODA5IDIuODExMjMgMTMuMDgyOSAyLjMxMTc1IDEzLjU3NTcgMS44NDc1NVoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo="} width="14" height="14" style={{ display: "block", flexShrink: 0 }} />
                 <div style={{ flex: 1, overflow: "hidden", whiteSpace: "nowrap" }}>
@@ -486,7 +533,7 @@ function PlayerSubtitlePrototype() {
             </div>
 
             {/* 최하단 바 */}
-            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 2, display: "flex", alignItems: "center", gap: 8, padding: "8px 50px 8px 10px", opacity: uiVisible ? 1 : 0, transition: "opacity 0.3s ease", pointerEvents: uiVisible ? "auto" : "none" }}>
+            <div onClick={e => e.stopPropagation()} style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 2, display: "flex", alignItems: "center", gap: 8, padding: "8px 50px 8px 10px", opacity: uiVisible ? 1 : 0, transition: "opacity 0.3s ease", pointerEvents: uiVisible ? "auto" : "none" }}>
               <div style={{ position: "relative", flexShrink: 0 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 8, overflow: "hidden", border: "1.5px solid rgba(255,255,255,0.2)" }}>
                   <img src={BG_IMG} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
