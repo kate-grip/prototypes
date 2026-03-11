@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>vod-cc_admin_vod-list</title>
+<title>[어드민] 자동자막 - VOD 콘텐츠 목록</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -106,8 +106,42 @@ const baseRows = [
   },
 ];
 
+
+// ─── 수정 내역 ───
+const CHANGELOG = [
+  { date: "2026.03.05", items: ["최초 공유"] },
+];
+
+function ChangelogModal({ onClose }) {
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.4)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div onClick={e => e.stopPropagation()} style={{ backgroundColor: "#fff", borderRadius: 12, width: 480, maxHeight: "70vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid #E5E5E5", flexShrink: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#171717" }}>업데이트 히스토리</div>
+          <svg onClick={onClose} width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="#737373" strokeWidth="1.5" strokeLinecap="round" style={{ cursor: "pointer" }}>
+            <line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/>
+          </svg>
+        </div>
+        <div style={{ overflow: "auto", padding: "16px 20px" }}>
+          {CHANGELOG.map((log, i) => (
+            <div key={i} style={{ marginBottom: i < CHANGELOG.length - 1 ? 16 : 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#2563EB", marginBottom: 6 }}>{log.date}</div>
+              {log.items.map((item, j) => (
+                <div key={j} style={{ fontSize: 12, color: "#525252", lineHeight: 1.7, paddingLeft: 10, position: "relative" }}>
+                  <span style={{ position: "absolute", left: 0, color: "#A3A3A3" }}>-</span>
+                  {item}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 function App() {
   const [activeScenario, setActiveScenario] = useState(0);
+  const [showChangelog, setShowChangelog] = useState(false);
 
   const scenarios = [
     { name: "1. 변환 완료 + 자막 생성중", desc: "VOD 변환 완료 상태에서 자막 생성이 진행 중인 상태", highlightId: "highlight-1" },
@@ -125,10 +159,18 @@ function App() {
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Noto Sans KR', sans-serif", backgroundColor: C.white }}>
 
+      {showChangelog && <ChangelogModal onClose={() => setShowChangelog(false)} />}
+
       {/* 페이지 타이틀 바 */}
-      <div style={{ height: 60, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 24px", backgroundColor: C.white, borderBottom: "1px solid #EEEEEE" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: C.g900 }}>VOD 콘텐츠</h1>
-        <button style={{ padding: "6px 14px", borderRadius: 4, border: "none", backgroundColor: C.primary, fontSize: 12, color: C.white, fontWeight: 400, cursor: "pointer" }}>VOD 콘텐츠 등록</button>
+      <div style={{ flexShrink: 0, padding: "10px 24px 12px", backgroundColor: C.white, borderBottom: "1px solid #EEEEEE" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+          <div style={{ fontSize: 12, color: "#A3A3A3" }}>VOD 자동자막</div>
+          <svg onClick={() => setShowChangelog(true)} width="14" height="14" viewBox="0 0 20 20" fill="none" style={{ cursor: "pointer", flexShrink: 0 }}><circle cx="10" cy="10" r="8.5" stroke="#A3A3A3" strokeWidth="1.3"/><polyline points="10,5 10,10 13.5,12" stroke="#A3A3A3" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "#171717" }}>VOD 콘텐츠</h1>
+          <button style={{ padding: "6px 14px", borderRadius: 4, border: "none", backgroundColor: C.primary, fontSize: 12, color: C.white, fontWeight: 400, cursor: "pointer" }}>VOD 콘텐츠 등록</button>
+        </div>
       </div>
       <div style={{ flex: 1, padding: "0 24px 24px", overflowY: "auto", backgroundColor: C.white }}>
 
