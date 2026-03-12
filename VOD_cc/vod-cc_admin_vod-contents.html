@@ -41,31 +41,34 @@ const LABEL_W = 100;
 
 const CAKE_IMG = "https://kate-grip.github.io/prototypes/Assets/strawberry%20cake.jpg";
 const LOGO_IMG = "https://kate-grip.github.io/prototypes/Assets/gripcloud%20logo(1%3A1).png";
-const VIDEO_SRC = "https://raw.githubusercontent.com/kate-grip/prototypes/3ca45253020a5df6d58002ec4351c79e75d860fb/Assets/Cake_Rotation_Video_Generation.mp4";
+const VIDEO_SRC = "https://kate-grip.github.io/prototypes/Assets/Cake_Rotation_Video_Generation.mp4";
 
 // ─── VOD 플레이어 (자막 없는 단순 미리보기) ───
 
 function VODPlayer({ width }) {
   const [hover, setHover] = useState(false);
 
-  // ref callback: DOM에 직접 속성 세팅 후 play (React muted prop 이슈 우회)
-  const initVideo = (el) => {
-    if (!el) return;
-    el.muted = true;
-    el.loop = true;
-    el.playsInline = true;
-    el.setAttribute("autoplay", "");
-    el.setAttribute("muted", "");
-    el.setAttribute("playsinline", "");
-    el.play().catch(() => {});
-    el.addEventListener("loadeddata", () => { el.play().catch(() => {}); }, { once: true });
+  // React video 태그 대신 DOM에 직접 video 엘리먼트 삽입 (Babel standalone 환경 video 자동재생 이슈 우회)
+  const containerRef = (el) => {
+    if (!el || el.querySelector("video")) return;
+    const v = document.createElement("video");
+    v.src = VIDEO_SRC;
+    v.muted = true;
+    v.loop = true;
+    v.playsInline = true;
+    v.autoplay = true;
+    v.setAttribute("muted", "");
+    v.setAttribute("autoplay", "");
+    v.setAttribute("playsinline", "");
+    v.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;";
+    el.appendChild(v);
+    v.play().catch(() => {});
   };
 
   return (
     <div style={{ width, aspectRatio: "9/16", borderRadius: 6, backgroundColor: "#000", position: "relative", overflow: "hidden", flexShrink: 0 }}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
-      <video ref={initVideo} src={VIDEO_SRC}
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+      <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
       {/* 컨트롤 바: 호버 시에만 노출되는 시각 목업 (실제 동작 없음) */}
       <div style={{
         position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 5,
