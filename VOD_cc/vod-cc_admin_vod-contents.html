@@ -77,7 +77,7 @@ function VODPlayer({ width }) {
   return (
     <div style={{ width, aspectRatio: "9/16", borderRadius: 6, backgroundColor: "#000", position: "relative", overflow: "hidden", cursor: "pointer", flexShrink: 0 }}
       onMouseMove={handleMouseMove} onMouseLeave={() => { if (playing) setShowControls(false); }}>
-      <video ref={vidRef} src={VIDEO_SRC} muted={muted} loop playsInline onTimeUpdate={handleTimeUpdate}
+      <video ref={vidRef} src={VIDEO_SRC} poster={CAKE_IMG} muted={muted} loop playsInline onTimeUpdate={handleTimeUpdate}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
         onClick={togglePlay} />
       {/* 하단 컨트롤 바 */}
@@ -337,23 +337,29 @@ function VODSubtitlePrototype() {
             </div>
           </FormRow>
 
+          {/* 커버 이미지: 등록 → 빈 업로드 영역, 수정 → 업로드된 커버 이미지 표시 */}
           <FormRow label="커버 이미지" required labelTop>
             <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-              <div style={{
-                width: 88, aspectRatio: "9/16", borderRadius: 8, flexShrink: 0,
-                border: `1.5px dashed ${C.g300}`, backgroundColor: C.g50,
-                display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
-              }}>
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={C.g300} strokeWidth="1.5" strokeLinecap="round">
-                  <line x1="10" y1="4" x2="10" y2="16"/><line x1="4" y1="10" x2="16" y2="10"/>
-                </svg>
-              </div>
+              {pageMode === "edit" ? (
+                <div style={{ width: 88, aspectRatio: "9/16", borderRadius: 6, flexShrink: 0, border: `1px solid ${C.g200}`, backgroundImage: `url(${CAKE_IMG})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+              ) : (
+                <div style={{
+                  width: 88, aspectRatio: "9/16", borderRadius: 8, flexShrink: 0,
+                  border: `1.5px dashed ${C.g300}`, backgroundColor: C.g50,
+                  display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={C.g300} strokeWidth="1.5" strokeLinecap="round">
+                    <line x1="10" y1="4" x2="10" y2="16"/><line x1="4" y1="10" x2="16" y2="10"/>
+                  </svg>
+                </div>
+              )}
               <div style={{ fontSize: 11, color: C.g400, lineHeight: 1.8 }}>
                 권장 크기 : 720x1280 (9:16)<br />용량: 10MB 이하<br />형식 : JPG, PNG, GIF
               </div>
             </div>
           </FormRow>
 
+          {/* VOD 영상: 등록 → 빈 업로드 영역, 수정 → 변환 완료된 영상 플레이어 (자막 확인 및 수정 모달과 동일 스펙) */}
           <FormRow label="VOD 영상" required labelTop>
             <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
               {pageMode === "edit" ? (
@@ -423,7 +429,7 @@ function VODSubtitlePrototype() {
           </div>
         </div>
 
-        {/* RIGHT: 미리보기 */}
+        {/* RIGHT: 미리보기 — 시청자 플레이어 목업. 배경은 커버 이미지(정적), 영상 재생 없음 */}
         <div style={{ flex: "0 0 320px", backgroundColor: C.white, borderRadius: 10, border: `1px solid ${C.g200}`, padding: "20px 16px", alignSelf: "flex-start" }}>
           <div style={{ marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "center" }}>
@@ -444,7 +450,7 @@ function VODSubtitlePrototype() {
           </div>
 
           <div style={{ width: "100%", aspectRatio: "9/16", borderRadius: 16, backgroundColor: "#1a1a1a", position: "relative", overflow: "hidden" }}>
-            {/* 영상 배경 이미지 */}
+            {/* 배경: 커버 이미지 (정적 이미지, 영상 재생 아님) */}
             <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${CAKE_IMG})`, backgroundSize: "cover", backgroundPosition: "center" }} />
             {/* 상단 딤 */}
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "20%", backgroundImage: "linear-gradient(180deg, rgba(0,0,0,0.25) 0%, transparent 100%)", zIndex: 1 }} />
