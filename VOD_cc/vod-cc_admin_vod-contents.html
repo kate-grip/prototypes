@@ -46,98 +46,43 @@ const VIDEO_SRC = "https://raw.githubusercontent.com/kate-grip/prototypes/3ca452
 // ─── VOD 플레이어 (자막 없는 단순 미리보기) ───
 
 function VODPlayer({ width }) {
-  const vidRef = useRef(null);
-  const [playing, setPlaying] = useState(true);
-  const [muted, setMuted] = useState(true);
-  const [showControls, setShowControls] = useState(false);
-  const [progressHover, setProgressHover] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const hideTimer = useRef(null);
+  const [hover, setHover] = useState(false);
 
-  // ref callback: DOM에 직접 autoplay 속성 세팅
-  const setVidRef = (el) => {
-    vidRef.current = el;
-    if (el) {
-      el.muted = true;
-      el.setAttribute("autoplay", "");
-      el.setAttribute("playsinline", "");
-      el.play().catch(() => {});
-    }
-  };
-
-  const togglePlay = () => {
-    if (!vidRef.current) return;
-    if (playing) { vidRef.current.pause(); } else { vidRef.current.play(); }
-    setPlaying(!playing);
-  };
-  const toggleMute = () => {
-    if (!vidRef.current) return;
-    vidRef.current.muted = !muted;
-    setMuted(!muted);
-  };
-  const handleMouseMove = () => {
-    setShowControls(true);
-    clearTimeout(hideTimer.current);
-    if (playing) { hideTimer.current = setTimeout(() => setShowControls(false), 2500); }
-  };
-  const handleTimeUpdate = () => {
-    if (!vidRef.current || !vidRef.current.duration) return;
-    setProgress(vidRef.current.currentTime / vidRef.current.duration);
+  // ref callback: DOM에 직접 속성 세팅 후 play (React muted prop 이슈 우회)
+  const initVideo = (el) => {
+    if (!el) return;
+    el.muted = true;
+    el.loop = true;
+    el.playsInline = true;
+    el.setAttribute("autoplay", "");
+    el.setAttribute("muted", "");
+    el.setAttribute("playsinline", "");
+    el.play().catch(() => {});
+    el.addEventListener("loadeddata", () => { el.play().catch(() => {}); }, { once: true });
   };
 
   return (
-    <div style={{ width, aspectRatio: "9/16", borderRadius: 6, backgroundColor: "#000", position: "relative", overflow: "hidden", cursor: "pointer", flexShrink: 0 }}
-      onMouseMove={handleMouseMove} onMouseLeave={() => setShowControls(false)}>
-      <video ref={setVidRef} src={VIDEO_SRC} poster={CAKE_IMG} muted loop
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedData={e => { if (playing) e.target.play().catch(() => {}); }}
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
-        onClick={togglePlay} />
-      {/* 하단 컨트롤 바 */}
+    <div style={{ width, aspectRatio: "9/16", borderRadius: 6, backgroundColor: "#000", position: "relative", overflow: "hidden", flexShrink: 0 }}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      <video ref={initVideo} src={VIDEO_SRC}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+      {/* 컨트롤 바: 호버 시에만 노출되는 시각 목업 (실제 동작 없음) */}
       <div style={{
         position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 5,
         background: "linear-gradient(0deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)",
-        padding: "24px 0 0", opacity: showControls ? 1 : 0, transition: "opacity 0.25s",
+        padding: "24px 0 0", opacity: hover ? 1 : 0, transition: "opacity 0.25s", pointerEvents: "none",
       }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-around", padding: "0 8px 4px" }}>
-          <div onClick={e => { e.stopPropagation(); togglePlay(); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", padding: 3 }}>
-            {playing ? (
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="white"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="white"><path d="M4 2l10 6-10 6V2z"/></svg>
-            )}
-          </div>
-          <div onClick={e => { e.stopPropagation(); toggleMute(); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", padding: 3 }}>
-            {muted ? (
-              <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10 3L5.5 7H3v6h2.5L10 17V3z"/>
-                <line x1="15" y1="7" x2="15" y2="13" strokeOpacity="0.4"/><line x1="18" y1="5.5" x2="18" y2="14.5" strokeOpacity="0.4"/>
-                <line x1="1" y1="1" x2="19" y2="19" stroke="white" strokeWidth="1.5"/>
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10 3L5.5 7H3v6h2.5L10 17V3z"/>
-                <line x1="15" y1="7" x2="15" y2="13"/><line x1="18" y1="5.5" x2="18" y2="14.5"/>
-              </svg>
-            )}
-          </div>
-          <div style={{ cursor: "pointer", display: "flex", alignItems: "center", padding: 3 }}>
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/></svg>
-          </div>
-          <div style={{ cursor: "pointer", display: "flex", alignItems: "center", padding: 3 }}>
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="white"><circle cx="8" cy="3" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="8" cy="13" r="1.3"/></svg>
-          </div>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="white"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10 3L5.5 7H3v6h2.5L10 17V3z"/><line x1="15" y1="7" x2="15" y2="13"/><line x1="18" y1="5.5" x2="18" y2="14.5"/>
+          </svg>
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/></svg>
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="white"><circle cx="8" cy="3" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="8" cy="13" r="1.3"/></svg>
         </div>
-        <div style={{ padding: "0 8px 6px", display: "flex", alignItems: "center" }}
-          onMouseEnter={() => setProgressHover(true)} onMouseLeave={() => setProgressHover(false)}>
-          <div style={{ flex: 1, height: progressHover ? 4 : 3, backgroundColor: "rgba(255,255,255,0.3)", borderRadius: 2, position: "relative", transition: "height 0.15s", cursor: "pointer" }}>
-            <div style={{ height: "100%", width: (progress * 100) + "%", backgroundColor: "rgba(255,255,255,0.6)", borderRadius: 2, transition: "width 0.3s" }} />
-            <div style={{
-              position: "absolute", top: "50%", left: "calc(" + (progress * 100) + "% - 4px)",
-              width: 8, height: 8, borderRadius: "50%", backgroundColor: C.white,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.4)", transform: "translateY(-50%)",
-              opacity: progressHover ? 1 : 0, transition: "opacity 0.15s",
-            }} />
+        <div style={{ padding: "0 8px 6px" }}>
+          <div style={{ height: 3, backgroundColor: "rgba(255,255,255,0.3)", borderRadius: 2 }}>
+            <div style={{ height: "100%", width: "35%", backgroundColor: "rgba(255,255,255,0.6)", borderRadius: 2 }} />
           </div>
         </div>
       </div>
