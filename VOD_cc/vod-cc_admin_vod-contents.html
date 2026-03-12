@@ -47,9 +47,9 @@ const VIDEO_SRC = "https://raw.githubusercontent.com/kate-grip/prototypes/3ca452
 
 function VODPlayer({ width }) {
   const vidRef = useRef(null);
-  const [playing, setPlaying] = useState(false);
+  const [playing, setPlaying] = useState(true);
   const [muted, setMuted] = useState(true);
-  const [showControls, setShowControls] = useState(true);
+  const [showControls, setShowControls] = useState(false);
   const [progressHover, setProgressHover] = useState(false);
   const [progress, setProgress] = useState(0);
   const hideTimer = useRef(null);
@@ -76,8 +76,8 @@ function VODPlayer({ width }) {
 
   return (
     <div style={{ width, aspectRatio: "9/16", borderRadius: 6, backgroundColor: "#000", position: "relative", overflow: "hidden", cursor: "pointer", flexShrink: 0 }}
-      onMouseMove={handleMouseMove} onMouseLeave={() => { if (playing) setShowControls(false); }}>
-      <video ref={vidRef} src={VIDEO_SRC} poster={CAKE_IMG} muted={muted} loop playsInline onTimeUpdate={handleTimeUpdate}
+      onMouseMove={handleMouseMove} onMouseLeave={() => setShowControls(false)}>
+      <video ref={vidRef} src={VIDEO_SRC} poster={CAKE_IMG} muted={muted} autoPlay loop playsInline onTimeUpdate={handleTimeUpdate}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
         onClick={togglePlay} />
       {/* 하단 컨트롤 바 */}
