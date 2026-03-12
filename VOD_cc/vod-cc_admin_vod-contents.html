@@ -54,9 +54,16 @@ function VODPlayer({ width }) {
   const [progress, setProgress] = useState(0);
   const hideTimer = useRef(null);
 
-  useEffect(() => {
-    if (vidRef.current) { vidRef.current.muted = true; vidRef.current.play().catch(() => {}); }
-  }, []);
+  // ref callback: DOM에 직접 autoplay 속성 세팅
+  const setVidRef = (el) => {
+    vidRef.current = el;
+    if (el) {
+      el.muted = true;
+      el.setAttribute("autoplay", "");
+      el.setAttribute("playsinline", "");
+      el.play().catch(() => {});
+    }
+  };
 
   const togglePlay = () => {
     if (!vidRef.current) return;
@@ -81,9 +88,9 @@ function VODPlayer({ width }) {
   return (
     <div style={{ width, aspectRatio: "9/16", borderRadius: 6, backgroundColor: "#000", position: "relative", overflow: "hidden", cursor: "pointer", flexShrink: 0 }}
       onMouseMove={handleMouseMove} onMouseLeave={() => setShowControls(false)}>
-      <video ref={vidRef} src={VIDEO_SRC} poster={CAKE_IMG} muted={muted} autoPlay loop playsInline
+      <video ref={setVidRef} src={VIDEO_SRC} poster={CAKE_IMG} muted loop
         onTimeUpdate={handleTimeUpdate}
-        onCanPlay={e => { if (playing) e.target.play().catch(() => {}); }}
+        onLoadedData={e => { if (playing) e.target.play().catch(() => {}); }}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
         onClick={togglePlay} />
       {/* 하단 컨트롤 바 */}
