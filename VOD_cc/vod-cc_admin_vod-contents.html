@@ -41,6 +41,96 @@ const LABEL_W = 100;
 
 const CAKE_IMG = "https://kate-grip.github.io/prototypes/Assets/strawberry%20cake.jpg";
 const LOGO_IMG = "https://kate-grip.github.io/prototypes/Assets/gripcloud%20logo(1%3A1).png";
+const VIDEO_SRC = "https://raw.githubusercontent.com/kate-grip/prototypes/3ca45253020a5df6d58002ec4351c79e75d860fb/Assets/Cake_Rotation_Video_Generation.mp4";
+
+// ─── VOD 플레이어 (자막 없는 단순 미리보기) ───
+
+function VODPlayer({ width }) {
+  const vidRef = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const [showControls, setShowControls] = useState(true);
+  const [progressHover, setProgressHover] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const hideTimer = useRef(null);
+
+  const togglePlay = () => {
+    if (!vidRef.current) return;
+    if (playing) { vidRef.current.pause(); } else { vidRef.current.play(); }
+    setPlaying(!playing);
+  };
+  const toggleMute = () => {
+    if (!vidRef.current) return;
+    vidRef.current.muted = !muted;
+    setMuted(!muted);
+  };
+  const handleMouseMove = () => {
+    setShowControls(true);
+    clearTimeout(hideTimer.current);
+    if (playing) { hideTimer.current = setTimeout(() => setShowControls(false), 2500); }
+  };
+  const handleTimeUpdate = () => {
+    if (!vidRef.current || !vidRef.current.duration) return;
+    setProgress(vidRef.current.currentTime / vidRef.current.duration);
+  };
+
+  return (
+    <div style={{ width, aspectRatio: "9/16", borderRadius: 6, backgroundColor: "#000", position: "relative", overflow: "hidden", cursor: "pointer", flexShrink: 0 }}
+      onMouseMove={handleMouseMove} onMouseLeave={() => { if (playing) setShowControls(false); }}>
+      <video ref={vidRef} src={VIDEO_SRC} muted={muted} loop playsInline onTimeUpdate={handleTimeUpdate}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+        onClick={togglePlay} />
+      {/* 하단 컨트롤 바 */}
+      <div style={{
+        position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 5,
+        background: "linear-gradient(0deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)",
+        padding: "24px 0 0", opacity: showControls ? 1 : 0, transition: "opacity 0.25s",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-around", padding: "0 8px 4px" }}>
+          <div onClick={e => { e.stopPropagation(); togglePlay(); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", padding: 3 }}>
+            {playing ? (
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="white"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="white"><path d="M4 2l10 6-10 6V2z"/></svg>
+            )}
+          </div>
+          <div onClick={e => { e.stopPropagation(); toggleMute(); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", padding: 3 }}>
+            {muted ? (
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 3L5.5 7H3v6h2.5L10 17V3z"/>
+                <line x1="15" y1="7" x2="15" y2="13" strokeOpacity="0.4"/><line x1="18" y1="5.5" x2="18" y2="14.5" strokeOpacity="0.4"/>
+                <line x1="1" y1="1" x2="19" y2="19" stroke="white" strokeWidth="1.5"/>
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 3L5.5 7H3v6h2.5L10 17V3z"/>
+                <line x1="15" y1="7" x2="15" y2="13"/><line x1="18" y1="5.5" x2="18" y2="14.5"/>
+              </svg>
+            )}
+          </div>
+          <div style={{ cursor: "pointer", display: "flex", alignItems: "center", padding: 3 }}>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/></svg>
+          </div>
+          <div style={{ cursor: "pointer", display: "flex", alignItems: "center", padding: 3 }}>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="white"><circle cx="8" cy="3" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="8" cy="13" r="1.3"/></svg>
+          </div>
+        </div>
+        <div style={{ padding: "0 8px 6px", display: "flex", alignItems: "center" }}
+          onMouseEnter={() => setProgressHover(true)} onMouseLeave={() => setProgressHover(false)}>
+          <div style={{ flex: 1, height: progressHover ? 4 : 3, backgroundColor: "rgba(255,255,255,0.3)", borderRadius: 2, position: "relative", transition: "height 0.15s", cursor: "pointer" }}>
+            <div style={{ height: "100%", width: (progress * 100) + "%", backgroundColor: "rgba(255,255,255,0.6)", borderRadius: 2, transition: "width 0.3s" }} />
+            <div style={{
+              position: "absolute", top: "50%", left: "calc(" + (progress * 100) + "% - 4px)",
+              width: 8, height: 8, borderRadius: "50%", backgroundColor: C.white,
+              boxShadow: "0 1px 3px rgba(0,0,0,0.4)", transform: "translateY(-50%)",
+              opacity: progressHover ? 1 : 0, transition: "opacity 0.15s",
+            }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── 공통 컴포넌트 ───
 
@@ -130,7 +220,7 @@ function FormRow({ label, required, children, labelTop }) {
 
 // ─── 수정 내역 ───
 const CHANGELOG = [
-  { date: "2026.03.12", items: ["자막 확인 및 수정 모달을 별도 페이지(새 탭)로 분리", "미리보기 자막 오버레이 제거", "자막 노출 토글의 시나리오 자동 전환 버그 수정", "이미지를 GitHub Pages 외부 URL로 교체 (base64 손상 방지)"] },
+  { date: "2026.03.12", items: ["자막 확인 및 수정 모달을 별도 페이지(새 탭)로 분리", "미리보기 자막 오버레이 제거", "자막 노출 토글의 시나리오 자동 전환 버그 수정", "이미지를 GitHub Pages 외부 URL로 교체 (base64 손상 방지)", "자막 생성중 상태에서 자동자막 사용 토글 비활성화 처리", "VOD 콘텐츠 수정 시 VOD 영상 항목에 영상 플레이어 표시"] },
   { date: "2026.03.04", items: ["최초 공유"] },
 ];
 
@@ -249,7 +339,15 @@ function VODSubtitlePrototype() {
 
           <FormRow label="커버 이미지" required labelTop>
             <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-              <div style={{ width: 88, aspectRatio: "9/16", borderRadius: 6, flexShrink: 0, border: `1px solid ${C.g200}`, backgroundImage: `url(${CAKE_IMG})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+              <div style={{
+                width: 88, aspectRatio: "9/16", borderRadius: 8, flexShrink: 0,
+                border: `1.5px dashed ${C.g300}`, backgroundColor: C.g50,
+                display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+              }}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={C.g300} strokeWidth="1.5" strokeLinecap="round">
+                  <line x1="10" y1="4" x2="10" y2="16"/><line x1="4" y1="10" x2="16" y2="10"/>
+                </svg>
+              </div>
               <div style={{ fontSize: 11, color: C.g400, lineHeight: 1.8 }}>
                 권장 크기 : 720x1280 (9:16)<br />용량: 10MB 이하<br />형식 : JPG, PNG, GIF
               </div>
@@ -258,7 +356,19 @@ function VODSubtitlePrototype() {
 
           <FormRow label="VOD 영상" required labelTop>
             <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-              <div style={{ width: 140, aspectRatio: "9/16", borderRadius: 6, flexShrink: 0, border: `1px solid ${C.g200}`, backgroundImage: `url(${CAKE_IMG})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+              {pageMode === "edit" ? (
+                <VODPlayer width={140} />
+              ) : (
+                <div style={{
+                  width: 140, aspectRatio: "9/16", borderRadius: 8, flexShrink: 0,
+                  border: `1.5px dashed ${C.g300}`, backgroundColor: C.g50,
+                  display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={C.g300} strokeWidth="1.5" strokeLinecap="round">
+                    <line x1="10" y1="4" x2="10" y2="16"/><line x1="4" y1="10" x2="16" y2="10"/>
+                  </svg>
+                </div>
+              )}
               <div style={{ fontSize: 11, color: C.g400, lineHeight: 1.8 }}>
                 권장 크기 : 720x1280 (9:16)<br />용량: 2GB 이하<br />형식 : MP4<br />비트레이트 : 5Mbps 이하
               </div>
@@ -274,7 +384,7 @@ function VODSubtitlePrototype() {
                 <span style={{ fontSize: 13, fontWeight: 500, color: C.g700 }}>자동자막 사용</span>
                 <TooltipIcon text="VOD 변환 시 발화 기반 자막을 자동 생성합니다." />
               </div>
-              <Toggle enabled={autoSub} onChange={handleAutoToggle} disabled={status === "complete"} />
+              <Toggle enabled={autoSub} onChange={handleAutoToggle} disabled={status === "generating" || status === "complete"} />
               {status !== "idle" && <Badge status={status} />}
               {/* 자막 확인 및 수정 버튼 — 생성완료 시 새 탭으로 열기 */}
               {autoSub && status === "complete" && (
@@ -445,7 +555,7 @@ function VODSubtitlePrototype() {
             {activeScenario === 2 && (
               <div style={{ fontSize: 12, color: C.g600, lineHeight: 1.8 }}>
                 <div>페이지: <strong style={{ color: C.g700 }}>VOD 콘텐츠 수정</strong> — 저장 후 재진입 상태</div>
-                <div>자동자막 사용: <strong style={{ color: C.primary }}>ON</strong> | 뱃지: <strong style={{ color: C.amber700 }}>자막 생성중</strong></div>
+                <div>자동자막 사용: <strong style={{ color: C.primary }}>ON</strong> (토글 비활성화) | 뱃지: <strong style={{ color: C.amber700 }}>자막 생성중</strong></div>
                 <div>자막 노출: <strong style={{ color: C.primary }}>ON</strong> — 등록 시 설정값 유지</div>
               </div>
             )}
