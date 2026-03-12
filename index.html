@@ -160,6 +160,24 @@
   .sidebar::-webkit-scrollbar { width: 4px; }
   .sidebar::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
   .sidebar::-webkit-scrollbar-track { background: transparent; }
+
+  /* ── 히스토리 툴팁 ── */
+  .changelog-tooltip {
+    position: fixed;
+    z-index: 9999;
+    background: #2a2a2a;
+    color: #f0f0f0;
+    font-size: 11px;
+    line-height: 1.5;
+    padding: 10px 14px;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    max-width: 340px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .changelog-tooltip.visible { opacity: 1; }
 </style>
 </head>
 <body>
@@ -213,6 +231,8 @@
     </div>
   </main>
 </div>
+
+<div class="changelog-tooltip" id="changelogTooltip"></div>
 
 <script>
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -278,14 +298,31 @@
 
   const tagClassMap = { '신규': 'new-feature', '고도화': 'improvement' };
 
-  // ── CHANGELOG 날짜 추출 (각 파일에서 첫 번째 date:"YYYY.MM.DD" 패턴) ──
-  async function fetchLatestDate(filePath) {
+  // ── CHANGELOG 파싱 (날짜 + 항목 전체 추출) ──
+  async function fetchChangelog(filePath) {
     try {
       const resp = await fetch(filePath);
       if (!resp.ok) return null;
       const text = await resp.text();
-      const match = text.match(/date\s*:\s*["'](\d{4}\.\d{2}\.\d{2})["']/);
-      return match ? match[1] : null;
+      // 최신 날짜
+      const dateMatch = text.match(/date\s*:\s*["'](\d{4}\.\d{2}\.\d{2})["']/);
+      const date = dateMatch ? dateMatch[1] : null;
+      // 전체 CHANGELOG 항목 추출: date + items 쌍
+      const entries = [];
+      const entryRegex = /\{date\s*:\s*["'](\d{4}\.\d{2}\.\d{2})["']\s*,\s*items\s*:\s*\[([\s\S]*?)\]\s*\}/g;
+      let m;
+      while ((m = entryRegex.exec(text)) !== null) {
+        const entryDate = m[1];
+        const itemsRaw = m[2];
+        const items = [];
+        const itemRegex = /["']((?:[^"'\\]|\\.)*)["']/g;
+        let im;
+        while ((im = itemRegex.exec(itemsRaw)) !== null) {
+          items.push(im[1].replace(/\\"/g, '"').replace(/\\'/g, "'"));
+        }
+        entries.push({ date: entryDate, items });
+      }
+      return { date, entries };
     } catch (e) {
       return null;
     }
@@ -355,13 +392,31 @@
     });
 
     await Promise.all(allChildren.map(async (child) => {
-      const date = await fetchLatestDate(child.file);
-      child._fetchedDate = date || '알 수 없음';
-      // DOM 업데이트
+      const result = await fetchChangelog(child.file);
+      child._fetchedDate = result?.date || '알 수 없음';
+      child._changelog = result?.entries || [];
+      // DOM 업데이트: 날짜
       const dateEl = sidebar.querySelector('.proto-child-date[data-dateof="' + child.file + '"]');
       if (dateEl) {
         dateEl.textContent = child._fetchedDate;
         dateEl.classList.remove('loading');
+      }
+      // DOM 업데이트: 툴팁 데이터
+      const pathId = child.path || child.file.replace('.html', '');
+      const childEl = sidebar.querySelector('.proto-child[data-path="' + pathId + '"]');
+      if (childEl && child._changelog.length > 0) {
+        // 툴팁 HTML 생성
+        let tipHtml = '';
+        child._changelog.forEach(entry => {
+          tipHtml += '<div style="margin-bottom:6px"><div style="font-weight:600;color:#7C3AED;margin-bottom:2px">' + entry.date + '</div>';
+          entry.items.forEach(item => {
+            const isSub = item.startsWith('  - ');
+            const txt = isSub ? item.slice(4) : item;
+            tipHtml += '<div style="padding-left:' + (isSub ? '12px' : '0') + ';color:#e0e0e0;line-height:1.5">' + (isSub ? '· ' : '- ') + txt + '</div>';
+          });
+          tipHtml += '</div>';
+        });
+        childEl.dataset.tooltip = tipHtml;
       }
     }));
 
@@ -379,19 +434,35 @@
     // 정렬된 순서로 DOM 재정렬
     prototypes.forEach(section => {
       section.groups.forEach(group => {
-        // 해당 그룹의 proto-group 다음에 나오는 proto-child들을 찾아 재배치
-        const groupChildren = group.children.map(child => {
+        // 현재 DOM에서 이 그룹에 해당하는 child 요소들을 (정렬 전 순서로) 수집
+        const allChildEls = [];
+        group.children.forEach(child => {
+          const pathId = child.path || child.file.replace('.html', '');
+          const el = sidebar.querySelector('.proto-child[data-path="' + pathId + '"]');
+          if (el) allChildEls.push(el);
+        });
+        if (allChildEls.length < 2) return;
+
+        // 삽입 기준점: 현재 DOM에서 이 그룹 child들 중 첫 번째 요소
+        const parent = allChildEls[0].parentNode;
+        const firstCurrentEl = parent.querySelector('.proto-child[data-path="' + (group.children[0].path || group.children[0].file.replace('.html','')) + '"]');
+        
+        // 정렬된 children 순서대로 DOM 요소를 모아서, firstCurrentEl 앞에 차례로 삽입
+        const sortedEls = group.children.map(child => {
           const pathId = child.path || child.file.replace('.html', '');
           return sidebar.querySelector('.proto-child[data-path="' + pathId + '"]');
         }).filter(Boolean);
 
-        if (groupChildren.length > 1) {
-          const parent = groupChildren[0].parentNode;
-          const refNode = groupChildren[groupChildren.length - 1].nextSibling;
-          groupChildren.forEach(el => {
-            parent.insertBefore(el, refNode);
-          });
-        }
+        // 모든 요소를 한번 제거 후 순서대로 재삽입
+        const nextAfterGroup = sortedEls[sortedEls.length - 1].nextElementSibling;
+        sortedEls.forEach(el => el.remove());
+        sortedEls.forEach(el => {
+          if (nextAfterGroup) {
+            parent.insertBefore(el, nextAfterGroup);
+          } else {
+            parent.appendChild(el);
+          }
+        });
       });
     });
 
@@ -411,6 +482,8 @@
 
   function bindClicks() {
     const sidebar = document.getElementById('sidebar');
+    const tooltip = document.getElementById('changelogTooltip');
+
     sidebar.querySelectorAll('.proto-child').forEach(btn => {
       btn.onclick = (e) => {
         sidebar.querySelectorAll('.proto-child').forEach(b => b.classList.remove('active'));
@@ -420,6 +493,28 @@
         document.getElementById('viewer').innerHTML =
           '<iframe src="' + btn.dataset.file + '"></iframe>';
       };
+
+      // 툴팁: hover
+      btn.addEventListener('mouseenter', (e) => {
+        const tipData = btn.dataset.tooltip;
+        if (!tipData) return;
+        tooltip.innerHTML = tipData;
+        tooltip.classList.add('visible');
+      });
+      btn.addEventListener('mousemove', (e) => {
+        const tipW = tooltip.offsetWidth;
+        const tipH = tooltip.offsetHeight;
+        let x = e.clientX + 12;
+        let y = e.clientY - tipH - 8;
+        // 화면 밖으로 나가지 않도록 보정
+        if (x + tipW > window.innerWidth - 8) x = e.clientX - tipW - 12;
+        if (y < 8) y = e.clientY + 16;
+        tooltip.style.left = x + 'px';
+        tooltip.style.top = y + 'px';
+      });
+      btn.addEventListener('mouseleave', () => {
+        tooltip.classList.remove('visible');
+      });
     });
   }
 
