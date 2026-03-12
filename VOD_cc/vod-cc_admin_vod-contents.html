@@ -1,22 +1,536 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>[어드민] 자동자막 - VOD 콘텐츠 등록/수정</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>*{margin:0;padding:0;box-sizing:border-box;font-family:'Noto Sans KR',sans-serif;}
+button,input,select,textarea{font-family:inherit;}</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
 
-function VODPlayer({ width }) {
-const vidRef = useRef(null);
-  const [playing, setPlaying] = useState(false);
-  const [playing, setPlaying] = useState(true);
-const [muted, setMuted] = useState(true);
-  const [showControls, setShowControls] = useState(true);
-  const [showControls, setShowControls] = useState(false);
-const [progressHover, setProgressHover] = useState(false);
-const [progress, setProgress] = useState(0);
-const hideTimer = useRef(null);
-@@ -76,8 +76,8 @@
+/*
+ * ── Grip Cloud 컬러 시스템 (Light) ──
+ * Primary:    Strong #222222 | Normal #003D99 | Secondary #508EFF | Admin_point #1677FF
+ * Border:     Normal #E4E5E7 | Accent #AFB0B2 | Assistive #F0F0F0 | Bold #666666
+ * Status:     Positive #6198FD | Negative1 #F23526 | Negative2 #FF4D4F
+ * Text:       Normal #222222 | Sub-menu #6C6C6C | Alternative #888888 | Assistive #B0B0B0
+ * Background: 001 #F9F9F9 | 002 #FAFAFA | 003 #F7F8FA | 004 #E6F4FF
+ * Dim:        Modal rgba(0,0,0,0.45) | Toast rgba(0,0,0,0.10)
+ */
+const C = {
+  primary: "#1677FF", primaryLight: "#E6F4FF", bg: "#F9F9F9", white: "#FFFFFF",
+  g50: "#FAFAFA", g100: "#F0F0F0", g200: "#E4E5E7", g300: "#AFB0B2",
+  g400: "#B0B0B0", g500: "#888888", g600: "#6C6C6C", g700: "#666666",
+  g800: "#222222", g900: "#222222",
+  amber50: "#FFFBEB", amber500: "#F59E0B", amber700: "#B45309",
+  green50: "#F6FFED", green600: "#52C41A", green700: "#52C41A",
+  red500: "#FF4D4F",
+};
 
-return (
-<div style={{ width, aspectRatio: "9/16", borderRadius: 6, backgroundColor: "#000", position: "relative", overflow: "hidden", cursor: "pointer", flexShrink: 0 }}
-      onMouseMove={handleMouseMove} onMouseLeave={() => { if (playing) setShowControls(false); }}>
-      <video ref={vidRef} src={VIDEO_SRC} poster={CAKE_IMG} muted={muted} loop playsInline onTimeUpdate={handleTimeUpdate}
-      onMouseMove={handleMouseMove} onMouseLeave={() => setShowControls(false)}>
-      <video ref={vidRef} src={VIDEO_SRC} poster={CAKE_IMG} muted={muted} autoPlay loop playsInline onTimeUpdate={handleTimeUpdate}
-style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
-onClick={togglePlay} />
-{/* 하단 컨트롤 바 */}
+const LABEL_W = 100;
+
+const CAKE_IMG = "https://kate-grip.github.io/prototypes/Assets/strawberry%20cake.jpg";
+const LOGO_IMG = "https://kate-grip.github.io/prototypes/Assets/gripcloud%20logo(1%3A1).png";
+// ─── VOD 썸네일 (정적 이미지 + 호버 시 플레이어 UI 목업) ───
+
+function VODThumbnail({ width }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <div style={{ width, aspectRatio: "9/16", borderRadius: 6, flexShrink: 0, position: "relative", overflow: "hidden", border: `1px solid ${C.g200}`, backgroundColor: C.white }}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${CAKE_IMG})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+      {/* 컨트롤 바: 호버 시에만 노출되는 시각 목업 */}
+      <div style={{
+        position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 5,
+        background: "linear-gradient(0deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)",
+        padding: "24px 0 0", opacity: hover ? 1 : 0, transition: "opacity 0.25s", pointerEvents: "none",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-around", padding: "0 8px 4px" }}>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="white"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10 3L5.5 7H3v6h2.5L10 17V3z"/><line x1="15" y1="7" x2="15" y2="13"/><line x1="18" y1="5.5" x2="18" y2="14.5"/>
+          </svg>
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/></svg>
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="white"><circle cx="8" cy="3" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="8" cy="13" r="1.3"/></svg>
+        </div>
+        <div style={{ padding: "0 8px 6px" }}>
+          <div style={{ height: 3, backgroundColor: "rgba(255,255,255,0.3)", borderRadius: 2 }}>
+            <div style={{ height: "100%", width: "35%", backgroundColor: "rgba(255,255,255,0.6)", borderRadius: 2 }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 공통 컴포넌트 ───
+
+function Toggle({ enabled, onChange, disabled }) {
+  return (
+    <button onClick={() => { if (!disabled) onChange(!enabled); }} style={{
+      width: 40, height: 22, borderRadius: 11, border: "none",
+      backgroundColor: disabled ? C.g300 : (enabled ? C.g900 : C.g300), cursor: disabled ? "not-allowed" : "pointer",
+      position: "relative", transition: "background-color 0.2s", flexShrink: 0, padding: 0,
+    }}>
+      <div style={{
+        width: 16, height: 16, borderRadius: "50%", backgroundColor: C.white,
+        position: "absolute", top: 3, left: enabled ? 21 : 3,
+        transition: "left 0.2s", boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
+      }} />
+    </button>
+  );
+}
+
+function Badge({ status }) {
+  if (status === "idle") return null;
+  const isGen = status === "generating";
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 5,
+      padding: "3px 12px", borderRadius: 4, fontSize: 10, fontWeight: 700, marginLeft: 8,
+      backgroundColor: isGen ? C.amber50 : "rgba(128,226,126,0.2)", color: isGen ? C.amber700 : "#4CAF50",
+      whiteSpace: "nowrap",
+    }}>
+      {isGen && <span style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: C.amber500, animation: "pulse 1.5s ease-in-out infinite" }} />}
+      {isGen ? "자막 생성중" : "자막 생성완료"}
+    </span>
+  );
+}
+
+function TooltipIcon({ text, align = "left" }) {
+  const [show, setShow] = useState(false);
+  const posStyle = align === "left"
+    ? { left: 0, transform: "none" }
+    : { left: "50%", transform: "translateX(-50%)" };
+  const arrowStyle = align === "left"
+    ? { left: 8 }
+    : { left: "50%", transform: "translateX(-50%)" };
+  return (
+    <div style={{ position: "relative", display: "inline-flex", marginLeft: 4 }}
+      onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, cursor: "help" }}>
+        <circle cx="8" cy="8" r="7" stroke={C.g400} strokeWidth="1.2" fill="none" />
+        <text x="8" y="11.5" textAnchor="middle" fill={C.g400} fontSize="10" fontWeight="600" fontFamily="inherit">?</text>
+      </svg>
+      {show && text && (
+        <div style={{
+          position: "absolute", bottom: "calc(100% + 8px)", ...posStyle,
+          backgroundColor: C.g800, color: C.white, fontSize: 12, lineHeight: 1.6,
+          padding: "8px 12px", borderRadius: 6, whiteSpace: "nowrap", zIndex: 100,
+          boxShadow: "0 4px 12px rgba(0,0,0,0.15)", animation: "fadeIn 0.12s ease",
+        }}>
+          {text}
+          <div style={{ position: "absolute", top: "100%", ...arrowStyle, width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: `5px solid ${C.g800}` }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Spinner() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" style={{ flexShrink: 0 }}>
+      <circle cx="7" cy="7" r="5.5" stroke={C.g200} strokeWidth="1.5" fill="none" />
+      <path d="M7 1.5a5.5 5.5 0 0 1 5.5 5.5" stroke={C.primary} strokeWidth="1.5" strokeLinecap="round" fill="none">
+        <animateTransform attributeName="transform" type="rotate" from="0 7 7" to="360 7 7" dur="0.8s" repeatCount="indefinite" />
+      </path>
+    </svg>
+  );
+}
+
+function FormRow({ label, required, children, labelTop }) {
+  return (
+    <div style={{ display: "flex", gap: 0, marginBottom: 24, alignItems: labelTop ? "flex-start" : "center" }}>
+      <div style={{ width: LABEL_W, flexShrink: 0, fontSize: 13, fontWeight: 500, color: C.g700, paddingTop: labelTop ? 4 : 0 }}>
+        {required && <span style={{ color: C.red500 }}>* </span>}{label}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
+    </div>
+  );
+}
+
+// ─── 수정 내역 ───
+const CHANGELOG = [
+  { date: "2026.03.12", items: ["자막 확인 및 수정 모달을 별도 페이지(새 탭)로 분리", "미리보기 자막 오버레이 제거", "자막 노출 토글의 시나리오 자동 전환 버그 수정", "이미지를 GitHub Pages 외부 URL로 교체 (base64 손상 방지)", "자막 생성중 상태에서 자동자막 사용 토글 비활성화 처리", "VOD 콘텐츠 수정 시 VOD 영상 항목에 정적 썸네일 + 호버 시 플레이어 UI 목업 표시"] },
+  { date: "2026.03.04", items: ["최초 공유"] },
+];
+
+function ChangelogModal({ onClose }) {
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.4)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div onClick={e => e.stopPropagation()} style={{ backgroundColor: "#fff", borderRadius: 12, width: 480, maxHeight: "70vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid #E5E5E5", flexShrink: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#171717" }}>업데이트 히스토리</div>
+          <svg onClick={onClose} width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="#737373" strokeWidth="1.5" strokeLinecap="round" style={{ cursor: "pointer" }}>
+            <line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/>
+          </svg>
+        </div>
+        <div style={{ overflow: "auto", padding: "16px 20px" }}>
+          {CHANGELOG.map((log, i) => (
+            <div key={i} style={{ marginBottom: i < CHANGELOG.length - 1 ? 16 : 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#2563EB", marginBottom: 6 }}>{log.date}</div>
+              {log.items.map((item, j) => (
+                <div key={j} style={{ fontSize: 12, color: "#525252", lineHeight: 1.7, paddingLeft: 10, position: "relative" }}>
+                  <span style={{ position: "absolute", left: 0, color: "#A3A3A3" }}>-</span>
+                  {item}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 메인 ───
+
+function VODSubtitlePrototype() {
+  const [autoSub, setAutoSub] = useState(false);
+  const [expose, setExpose] = useState(true);
+  const [status, setStatus] = useState("idle"); // idle | generating | complete
+  const [pageMode, setPageMode] = useState("register"); // register | edit
+  const [activeScenario, setActiveScenario] = useState(0);
+  const [showChangelog, setShowChangelog] = useState(false);
+  const [vodTitle, setVodTitle] = useState("[봄파티 미식대전] 🍓스트로베리🍓 초콜릿 케이크 예약배송");
+  const [titleOverflow, setTitleOverflow] = useState(false);
+  const titleRef = useRef(null);
+
+  useEffect(() => {
+    if (titleRef.current) {
+      setTitleOverflow(titleRef.current.scrollWidth > titleRef.current.clientWidth);
+    }
+  }, [vodTitle]);
+
+  const scenarios = [
+    { name: "1. 기본 상태", desc: "VOD 콘텐츠 등록 — 자동자막 OFF", auto: false, st: "idle", exp: true, mode: "register" },
+    { name: "2. 자동자막 사용 ON", desc: "VOD 콘텐츠 등록 — 자막 노출 기본 ON", auto: true, st: "idle", exp: true, mode: "register" },
+    { name: "3. 저장 후 재진입", desc: "VOD 콘텐츠 수정 — 자막 생성중", auto: true, st: "generating", exp: true, mode: "edit" },
+    { name: "4. 생성완료", desc: "VOD 콘텐츠 수정 — 자막 생성완료", auto: true, st: "complete", exp: true, mode: "edit" },
+    { name: "5. 자막 확인 및 수정", desc: "프로토타입 동작 안내", auto: true, st: "complete", exp: true, mode: "edit" },
+  ];
+
+  const apply = (i) => {
+    setActiveScenario(i);
+    setAutoSub(scenarios[i].auto);
+    setStatus(scenarios[i].st);
+    setExpose(scenarios[i].exp);
+    setPageMode(scenarios[i].mode);
+  };
+
+  const handleAutoToggle = (v) => {
+    setAutoSub(v);
+    if (!v) { setStatus("idle"); setExpose(true); setActiveScenario(0); }
+    else { setExpose(true); setActiveScenario(1); }
+  };
+
+  const handleOpenSubtitleEditor = () => {
+    window.open('vod-cc_subtitle-modal.html', '_blank');
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", backgroundColor: C.bg, fontFamily: '"Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+      <style>{`
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+      `}</style>
+
+      {/* 체인지로그 모달 */}
+      {showChangelog && <ChangelogModal onClose={() => setShowChangelog(false)} />}
+
+      {/* TOP BAR */}
+      <div style={{ flexShrink: 0, backgroundColor: C.white, borderBottom: "1px solid #EEEEEE", padding: "10px 24px 12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+          <div style={{ fontSize: 12, color: C.g400 }}>VOD 자동자막</div>
+          <svg onClick={() => setShowChangelog(true)} width="14" height="14" viewBox="0 0 20 20" fill="none" style={{ cursor: "pointer", flexShrink: 0 }}><circle cx="10" cy="10" r="8.5" stroke="#A3A3A3" strokeWidth="1.3"/><polyline points="10,5 10,10 13.5,12" stroke="#A3A3A3" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: C.g900 }}>{pageMode === "register" ? "VOD 콘텐츠 등록" : "VOD 콘텐츠 수정"}</h1>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button style={{ padding: "6px 16px", borderRadius: 6, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 13, color: C.g600, cursor: "pointer" }}>취소</button>
+            <button style={{ padding: "6px 16px", borderRadius: 6, border: "none", backgroundColor: C.primary, fontSize: 13, color: C.white, cursor: "pointer", fontWeight: 600 }}>저장</button>
+          </div>
+        </div>
+      </div>
+
+      {/* MAIN */}
+      <div style={{ display: "flex", gap: 20, padding: "20px 24px", maxWidth: 1100, margin: "0 auto", alignItems: "flex-start" }}>
+
+        {/* LEFT: 기본 정보 */}
+        <div style={{ flex: "1 1 0", backgroundColor: C.white, borderRadius: 10, border: `1px solid ${C.g200}`, padding: "28px 28px 20px" }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: C.g900, margin: "0 0 24px" }}>기본 정보</h2>
+
+          <FormRow label="제목" required>
+            <div style={{ border: `1px solid ${C.g200}`, borderRadius: 6, padding: "9px 12px", fontSize: 13, color: C.g800, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <input value={vodTitle} onChange={e => setVodTitle(e.target.value)} maxLength={100} style={{ border: "none", outline: "none", flex: 1, fontSize: 13, color: C.g800, fontFamily: "inherit", background: "transparent" }} />
+              <span style={{ fontSize: 12, color: C.g400, flexShrink: 0, marginLeft: 8 }}>{vodTitle.length}/100</span>
+            </div>
+          </FormRow>
+
+          {/* 커버 이미지: 등록 → 빈 업로드 영역, 수정 → 업로드된 커버 이미지 표시 */}
+          <FormRow label="커버 이미지" required labelTop>
+            <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+              {pageMode === "edit" ? (
+                <div style={{ width: 88, aspectRatio: "9/16", borderRadius: 6, flexShrink: 0, border: `1px solid ${C.g200}`, backgroundImage: `url(${CAKE_IMG})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+              ) : (
+                <div style={{
+                  width: 88, aspectRatio: "9/16", borderRadius: 8, flexShrink: 0,
+                  border: `1.5px dashed ${C.g300}`, backgroundColor: C.g50,
+                  display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={C.g300} strokeWidth="1.5" strokeLinecap="round">
+                    <line x1="10" y1="4" x2="10" y2="16"/><line x1="4" y1="10" x2="16" y2="10"/>
+                  </svg>
+                </div>
+              )}
+              <div style={{ fontSize: 11, color: C.g400, lineHeight: 1.8 }}>
+                권장 크기 : 720x1280 (9:16)<br />용량: 10MB 이하<br />형식 : JPG, PNG, GIF
+              </div>
+            </div>
+          </FormRow>
+
+          {/* VOD 영상: 등록 → 빈 업로드 영역, 수정 → 정적 썸네일 + 호버 시 플레이어 UI 목업 */}
+          <FormRow label="VOD 영상" required labelTop>
+            <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+              {pageMode === "edit" ? (
+                <VODThumbnail width={140} />
+              ) : (
+                <div style={{
+                  width: 140, aspectRatio: "9/16", borderRadius: 8, flexShrink: 0,
+                  border: `1.5px dashed ${C.g300}`, backgroundColor: C.g50,
+                  display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={C.g300} strokeWidth="1.5" strokeLinecap="round">
+                    <line x1="10" y1="4" x2="10" y2="16"/><line x1="4" y1="10" x2="16" y2="10"/>
+                  </svg>
+                </div>
+              )}
+              <div style={{ fontSize: 11, color: C.g400, lineHeight: 1.8 }}>
+                권장 크기 : 720x1280 (9:16)<br />용량: 2GB 이하<br />형식 : MP4<br />비트레이트 : 5Mbps 이하
+              </div>
+            </div>
+          </FormRow>
+
+          {/* ── 자막 설정 ── */}
+          <div style={{ borderTop: `1px solid ${C.g100}`, paddingTop: 16 }}>
+
+            {/* 자동자막 사용 */}
+            <div style={{ display: "flex", alignItems: "center", minHeight: 36 }}>
+              <div style={{ width: LABEL_W, flexShrink: 0, display: "flex", alignItems: "center" }}>
+                <span style={{ fontSize: 13, fontWeight: 500, color: C.g700 }}>자동자막 사용</span>
+                <TooltipIcon text="VOD 변환 시 발화 기반 자막을 자동 생성합니다." />
+              </div>
+              <Toggle enabled={autoSub} onChange={handleAutoToggle} disabled={status === "generating" || status === "complete"} />
+              {status !== "idle" && <Badge status={status} />}
+              {/* 자막 확인 및 수정 버튼 — 생성완료 시 새 탭으로 열기 */}
+              {autoSub && status === "complete" && (
+                <button onClick={handleOpenSubtitleEditor} style={{
+                  marginLeft: "auto", padding: "4px 12px", borderRadius: 6,
+                  border: `1px solid ${C.g200}`, backgroundColor: C.white,
+                  fontSize: 12, fontWeight: 500, color: C.g600,
+                  cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap",
+                }}
+                  onMouseOver={e => { e.currentTarget.style.backgroundColor = C.g50; e.currentTarget.style.borderColor = C.g300; }}
+                  onMouseOut={e => { e.currentTarget.style.backgroundColor = C.white; e.currentTarget.style.borderColor = C.g200; }}
+                >
+                  자막 확인 및 수정
+                </button>
+              )}
+            </div>
+
+            {/* 생성중 안내 */}
+            {autoSub && status === "generating" && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, padding: "8px 12px", borderRadius: 6, backgroundColor: C.g50, animation: "fadeIn 0.2s ease" }}>
+                <Spinner />
+                <span style={{ fontSize: 12, color: C.g500 }}>자막을 생성하고 있습니다...</span>
+              </div>
+            )}
+
+            {/* 자막 노출 — 자동자막 ON이면 항상 노출 */}
+            {autoSub && (
+              <div style={{ display: "flex", alignItems: "center", minHeight: 36, marginTop: 8, animation: "fadeIn 0.2s ease" }}>
+                <div style={{ width: LABEL_W, flexShrink: 0, display: "flex", alignItems: "center" }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: C.g700 }}>자막 노출</span>
+                  <TooltipIcon text="시청자 플레이어에서 자막 노출 여부를 제어합니다." />
+                </div>
+                <Toggle enabled={expose} onChange={(v) => setExpose(v)} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT: 미리보기 — 시청자 플레이어 목업. 배경은 커버 이미지(정적), 영상 재생 없음 */}
+        <div style={{ flex: "0 0 320px", backgroundColor: C.white, borderRadius: 10, border: `1px solid ${C.g200}`, padding: "20px 16px", alignSelf: "flex-start" }}>
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.g900 }}>미리보기</div>
+              <div style={{ marginLeft: "auto", display: "flex", gap: 4, fontSize: 11, color: C.g400 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", color: C.primary, fontWeight: 600 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 14, height: 14, borderRadius: "50%", border: `2px solid ${C.primary}` }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: C.primary }} />
+                  </span>
+                  라이브
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 14, height: 14, borderRadius: "50%", border: `2px solid ${C.g300}` }} />
+                  예약
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ width: "100%", aspectRatio: "9/16", borderRadius: 16, backgroundColor: "#1a1a1a", position: "relative", overflow: "hidden" }}>
+            {/* 배경: 커버 이미지 (정적 이미지, 영상 재생 아님) */}
+            <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${CAKE_IMG})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+            {/* 상단 딤 */}
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "20%", backgroundImage: "linear-gradient(180deg, rgba(0,0,0,0.25) 0%, transparent 100%)", zIndex: 1 }} />
+            {/* 하단 딤 */}
+            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "35%", backgroundImage: "linear-gradient(0deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%)", zIndex: 1 }} />
+
+            {/* 상단 영역 */}
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, padding: "10px 10px 0", zIndex: 2 }}>
+              {/* 1행: Powered by Grip + 라인 아이콘 */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <div style={{ fontSize: 8, color: "rgba(255,255,255,0.6)" }}>Powered by <span style={{ fontWeight: 600 }}>Grip</span></div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8 2L4.5 5.5H2v5h2.5L8 14V2z"/><line x1="12" y1="5.5" x2="12" y2="10.5"/><line x1="15" y1="5.5" x2="15" y2="10.5"/>
+                  </svg>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="3" r="1.5"/><circle cx="4" cy="8" r="1.5"/><circle cx="12" cy="13" r="1.5"/><line x1="5.4" y1="7.1" x2="10.6" y2="3.9"/><line x1="5.4" y1="8.9" x2="10.6" y2="12.1"/>
+                  </svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 8.68a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+                  </svg>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round">
+                    <line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/>
+                  </svg>
+                </div>
+              </div>
+              {/* 2행: 아바타 + 제목/부제 */}
+              <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
+                <img src={LOGO_IMG} style={{ width: 24, height: 24, borderRadius: 12, flexShrink: 0, marginTop: 1, objectFit: "cover" }} />
+                <div style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
+                  <div style={{
+                    fontSize: 11, fontWeight: 600, color: C.white,
+                    textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                    overflow: "hidden", whiteSpace: "nowrap",
+                  }} ref={titleRef}>{titleOverflow ? <span style={{ display: "inline-block", animation: "marquee 12s linear infinite" }}>{vodTitle}&nbsp;&nbsp;&nbsp;&nbsp;{vodTitle}&nbsp;&nbsp;&nbsp;&nbsp;</span> : vodTitle}</div>
+                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", marginTop: 2, display: "flex", alignItems: "center", gap: 3 }}>
+                    <span>그립 클라우드 라이브</span>
+                    <span style={{ margin: "0 1px" }}> · </span>
+                    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/>
+                    </svg>
+                    <span>0</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 하단 상품 목록 */}
+            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "30px 10px 12px", zIndex: 2 }}>
+              {[
+                { p: "₩**", n: "Rustic Soft Keyboard", c: "rgba(255,255,255,0.5)" },
+                { p: "₩**", n: "Fantastic Soft Chicken", c: "rgba(255,255,255,0.7)" },
+                { p: "₩**", n: "Licensed Metal Mouse", c: "rgba(255,255,255,0.7)" },
+                { p: "₩**", n: "Pratical Frozen Salad", c: "rgba(255,255,255,0.7)" },
+                { p: "₩**", n: "Rustic Bronze Car", c: "rgba(255,255,255,0.7)" },
+              ].map((item, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, padding: "2px 0", fontSize: 9, color: "rgba(255,255,255,0.8)" }}>
+                  <span style={{ color: item.c, fontWeight: 700, minWidth: 22 }}>{item.p}</span>
+                  <span style={{ fontWeight: 500 }}>{item.n}</span>
+                </div>
+              ))}
+              <div style={{ position: "absolute", bottom: 10, right: 10 }}>
+                <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                  <path d="M11 19s-7.5-4.5-7.5-10c0-2.8 2.2-5 5-5 1.5 0 2.5.7 2.5.7s1-.7 2.5-.7c2.8 0 5 2.2 5 5 0 5.5-7.5 10-7.5 10z" stroke="rgba(255,255,255,0.5)" strokeWidth="1.2" fill="none" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* BOTTOM: 시나리오 */}
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 32px" }}>
+        <div style={{ backgroundColor: "#EFF6FF", borderRadius: 10, border: `1px solid ${C.g200}`, padding: "20px 24px" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.g900, marginBottom: 4 }}>시나리오 전환</div>
+          <div style={{ fontSize: 12, color: C.g400, marginBottom: 16 }}>시나리오 버튼 클릭 시 해당 상태로 예시 화면이 전환됩니다.</div>
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+            {scenarios.map((s, i) => (
+              <button key={i} onClick={() => apply(i)} style={{
+                flex: "1 1 180px", padding: "12px 14px", borderRadius: 8,
+                border: `1.5px solid ${activeScenario === i ? C.primary : C.g200}`,
+                backgroundColor: activeScenario === i ? C.primaryLight : C.white,
+                cursor: "pointer", textAlign: "left", transition: "all 0.15s",
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: activeScenario === i ? C.primary : C.g700 }}>{s.name}</div>
+                <div style={{ fontSize: 11, color: C.g500, marginTop: 2 }}>{s.desc}</div>
+              </button>
+            ))}
+          </div>
+
+          <div style={{ backgroundColor: C.g50, borderRadius: 8, padding: "14px 16px" }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.g700, marginBottom: 8 }}>현재 상태 설명</div>
+            {activeScenario === 0 && (
+              <div style={{ fontSize: 12, color: C.g600, lineHeight: 1.8 }}>
+                <div>페이지: <strong style={{ color: C.g700 }}>VOD 콘텐츠 등록</strong></div>
+                <div>자동자막 사용: <strong style={{ color: C.g700 }}>OFF (기본값)</strong></div>
+                <div>자막 노출 항목: <strong style={{ color: C.g700 }}>미노출</strong> — 자동자막 OFF 시 자막 노출 토글 미표시</div>
+              </div>
+            )}
+            {activeScenario === 1 && (
+              <div style={{ fontSize: 12, color: C.g600, lineHeight: 1.8 }}>
+                <div>페이지: <strong style={{ color: C.g700 }}>VOD 콘텐츠 등록</strong></div>
+                <div>자동자막 사용: <strong style={{ color: C.primary }}>ON</strong> — 자막 생성은 저장 후 서버에서 시작</div>
+                <div>자막 노출: <strong style={{ color: C.primary }}>ON (기본값)</strong> — 생성 완료 시 자동으로 VOD와 함께 노출</div>
+              </div>
+            )}
+            {activeScenario === 2 && (
+              <div style={{ fontSize: 12, color: C.g600, lineHeight: 1.8 }}>
+                <div>페이지: <strong style={{ color: C.g700 }}>VOD 콘텐츠 수정</strong> — 저장 후 재진입 상태</div>
+                <div>자동자막 사용: <strong style={{ color: C.primary }}>ON</strong> (토글 비활성화) | 뱃지: <strong style={{ color: C.amber700 }}>자막 생성중</strong></div>
+                <div>자막 노출: <strong style={{ color: C.primary }}>ON</strong> — 등록 시 설정값 유지</div>
+              </div>
+            )}
+            {activeScenario === 3 && (
+              <div style={{ fontSize: 12, color: C.g600, lineHeight: 1.8 }}>
+                <div>페이지: <strong style={{ color: C.g700 }}>VOD 콘텐츠 수정</strong></div>
+                <div>자동자막 사용: <strong style={{ color: C.primary }}>ON</strong> (토글 비활성화) | 뱃지: <strong style={{ color: C.green600 }}>자막 생성완료</strong> | "자막 확인 및 수정" 버튼 노출</div>
+                <div>자막 노출: <strong style={{ color: C.primary }}>ON (기본값)</strong> — 토글로 OFF 전환 가능. 시청자 플레이어에서 자막 노출 여부를 제어</div>
+              </div>
+            )}
+            {activeScenario === 4 && (
+              <div style={{ fontSize: 12, color: C.g600, lineHeight: 1.8 }}>
+                <div style={{ fontWeight: 600, color: C.g700, marginBottom: 4 }}>자막 확인 및 수정 동작</div>
+                <div>실제 어드민: "자막 확인 및 수정" 버튼 클릭 시 <strong style={{ color: C.g700 }}>모달(오버레이)</strong>로 자막 에디터가 표시됨</div>
+                <div>본 프로토타입: 모달 코드의 용량 문제로 별도 페이지로 분리하여 <strong style={{ color: C.g700 }}>새 탭</strong>으로 열림</div>
+                <div style={{ marginTop: 6, padding: "6px 10px", backgroundColor: "#F0F9FF", borderRadius: 4, fontSize: 11, color: C.g600, lineHeight: 1.7 }}>
+                  실제 동작 확인은 시나리오 4에서 "자막 확인 및 수정" 버튼을 클릭하여 열린 새 탭, 또는 인덱스 목록의 "[어드민] 자막 확인 및 수정 (모달)"에서 가능합니다.
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<VODSubtitlePrototype />);
+</script>
+</body>
+</html>
