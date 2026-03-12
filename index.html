@@ -391,82 +391,98 @@
       });
     });
 
-    await Promise.all(allChildren.map(async (child) => {
-      const result = await fetchChangelog(child.file);
-      child._fetchedDate = result?.date || '알 수 없음';
-      child._changelog = result?.entries || [];
-      // DOM 업데이트: 날짜
-      const dateEl = sidebar.querySelector('.proto-child-date[data-dateof="' + child.file + '"]');
-      if (dateEl) {
-        dateEl.textContent = child._fetchedDate;
-        dateEl.classList.remove('loading');
-      }
-      // DOM 업데이트: 툴팁 데이터
-      const pathId = child.path || child.file.replace('.html', '');
-      const childEl = sidebar.querySelector('.proto-child[data-path="' + pathId + '"]');
-      if (childEl && child._changelog.length > 0) {
-        // 툴팁 HTML 생성
-        let tipHtml = '';
-        child._changelog.forEach(entry => {
-          tipHtml += '<div style="margin-bottom:6px"><div style="font-weight:600;color:#7C3AED;margin-bottom:2px">' + entry.date + '</div>';
-          entry.items.forEach(item => {
-            const isSub = item.startsWith('  - ');
-            const txt = isSub ? item.slice(4) : item;
-            tipHtml += '<div style="padding-left:' + (isSub ? '12px' : '0') + ';color:#e0e0e0;line-height:1.5">' + (isSub ? '· ' : '- ') + txt + '</div>';
+    // 2~4단계: fetch → 정렬 → 재렌더링 (실패해도 1단계 렌더링 유지)
+    try {
+      await Promise.all(allChildren.map(async (child) => {
+        try {
+          const result = await fetchChangelog(child.file);
+          child._fetchedDate = (result && result.date) ? result.date : '알 수 없음';
+          child._changelog = (result && result.entries) ? result.entries : [];
+        } catch(e) {
+          child._fetchedDate = '알 수 없음';
+          child._changelog = [];
+        }
+      }));
+
+      // 3단계: 날짜 기준 최신순 정렬
+      prototypes.forEach(section => {
+        section.groups.forEach(group => {
+          group.children.sort((a, b) => {
+            const da = (a._fetchedDate || '').replace(/\./g, '');
+            const db = (b._fetchedDate || '').replace(/\./g, '');
+            return db.localeCompare(da);
           });
-          tipHtml += '</div>';
         });
-        childEl.dataset.tooltip = tipHtml;
+      });
+
+      // 4단계: 정렬된 데이터로 사이드바 전체 재렌더링
+      let html2 = '';
+      prototypes.forEach(section => {
+        const visibleGroups = section.groups.filter(g => g.children && g.children.length > 0);
+        if (visibleGroups.length === 0 && section.section === '완료') return;
+
+        html2 += '<div class="sidebar-section">';
+        html2 += '<div class="sidebar-section-title">' + section.section + '</div>';
+        html2 += '</div>';
+
+        visibleGroups.forEach(group => {
+          const tagHtml = group.tag
+            ? '<span class="proto-tag ' + (tagClassMap[group.tag] || '') + '">' + group.tag + '</span>'
+            : '';
+          const jiraHtml = group.jira
+            ? '<a class="proto-jira" href="https://gripcorp.atlassian.net/browse/' + group.jira + '" target="_blank" rel="noopener">' + group.jira + '</a>'
+            : '';
+
+          html2 += '<div class="proto-group">';
+          html2 += '<div class="proto-group-header">';
+          html2 += '<span class="proto-group-title">' + group.feature + '</span>';
+          html2 += tagHtml;
+          html2 += '</div>';
+          html2 += '<div class="proto-group-meta">' + jiraHtml + '</div>';
+          html2 += '</div>';
+
+          group.children.forEach(child => {
+            const pathId = child.path || child.file.replace('.html', '');
+            var tooltipAttr = '';
+            if (child._changelog && child._changelog.length > 0) {
+              try {
+                tooltipAttr = ' data-tooltip="' + buildTooltipHtml(child._changelog).replace(/"/g, '&quot;') + '"';
+              } catch(e) {}
+            }
+            html2 += '<div class="proto-child" data-file="' + child.file + '" data-path="' + pathId + '"' + tooltipAttr + '>';
+            html2 += '<div class="proto-child-title">' + child.title + '</div>';
+            html2 += '<div class="proto-child-date">' + (child._fetchedDate || '알 수 없음') + '</div>';
+            html2 += '</div>';
+          });
+        });
+      });
+
+      sidebar.innerHTML = html2;
+      bindClicks();
+
+      if (window.location.hash) {
+        selectByPath(window.location.hash.slice(1));
       }
-    }));
+    } catch(e) {
+      // fetch/정렬/재렌더링 실패 시 1단계 렌더링 유지, 날짜만 fallback 처리
+      console.warn('CHANGELOG fetch failed, using initial render:', e);
+      var dateEls = sidebar.querySelectorAll('.proto-child-date.loading');
+      dateEls.forEach(function(el) { el.textContent = '-'; el.classList.remove('loading'); });
+    }
+  }
 
-    // 3단계: 날짜 기준 최신순 정렬 후 DOM 재정렬
-    prototypes.forEach(section => {
-      section.groups.forEach(group => {
-        group.children.sort((a, b) => {
-          const da = (a._fetchedDate || '').replace(/\./g, '');
-          const db = (b._fetchedDate || '').replace(/\./g, '');
-          return db.localeCompare(da); // 내림차순 (최신순)
-        });
+  function buildTooltipHtml(entries) {
+    let tipHtml = '';
+    entries.forEach(entry => {
+      tipHtml += '<div style="margin-bottom:6px"><div style="font-weight:600;color:#7C3AED;margin-bottom:2px">' + entry.date + '</div>';
+      entry.items.forEach(item => {
+        const isSub = item.startsWith('  - ');
+        const txt = isSub ? item.slice(4) : item;
+        tipHtml += '<div style="padding-left:' + (isSub ? '12px' : '0') + ';color:#e0e0e0;line-height:1.5">' + (isSub ? '· ' : '- ') + txt + '</div>';
       });
+      tipHtml += '</div>';
     });
-
-    // 정렬된 순서로 DOM 재정렬
-    prototypes.forEach(section => {
-      section.groups.forEach(group => {
-        // 현재 DOM에서 이 그룹에 해당하는 child 요소들을 (정렬 전 순서로) 수집
-        const allChildEls = [];
-        group.children.forEach(child => {
-          const pathId = child.path || child.file.replace('.html', '');
-          const el = sidebar.querySelector('.proto-child[data-path="' + pathId + '"]');
-          if (el) allChildEls.push(el);
-        });
-        if (allChildEls.length < 2) return;
-
-        // 삽입 기준점: 현재 DOM에서 이 그룹 child들 중 첫 번째 요소
-        const parent = allChildEls[0].parentNode;
-        const firstCurrentEl = parent.querySelector('.proto-child[data-path="' + (group.children[0].path || group.children[0].file.replace('.html','')) + '"]');
-        
-        // 정렬된 children 순서대로 DOM 요소를 모아서, firstCurrentEl 앞에 차례로 삽입
-        const sortedEls = group.children.map(child => {
-          const pathId = child.path || child.file.replace('.html', '');
-          return sidebar.querySelector('.proto-child[data-path="' + pathId + '"]');
-        }).filter(Boolean);
-
-        // 모든 요소를 한번 제거 후 순서대로 재삽입
-        const nextAfterGroup = sortedEls[sortedEls.length - 1].nextElementSibling;
-        sortedEls.forEach(el => el.remove());
-        sortedEls.forEach(el => {
-          if (nextAfterGroup) {
-            parent.insertBefore(el, nextAfterGroup);
-          } else {
-            parent.appendChild(el);
-          }
-        });
-      });
-    });
-
-    bindClicks();
+    return tipHtml;
   }
 
   function selectByPath(path) {
