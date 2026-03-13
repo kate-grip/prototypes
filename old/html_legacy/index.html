@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grip Cloud Prototypes</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%237C3AED'/%3E%3Cpath d='M16 4c0 0-6 6-6 14h12C22 10 16 4 16 4z' fill='white' opacity='0.9'/%3E%3Ccircle cx='16' cy='14' r='2' fill='%237C3AED'/%3E%3Cpath d='M12 18l-2 4h2z' fill='white' opacity='0.6'/%3E%3Cpath d='M20 18l2 4h-2z' fill='white' opacity='0.6'/%3E%3Cpath d='M13 22h6l-1 5h-4z' fill='%23FFD54F' opacity='0.8'/%3E%3Cpath d='M14.5 22h3l-.5 3h-2z' fill='%23FF8A65'/%3E%3C/svg%3E" type="image/svg+xml">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --sidebar-width: 280px;
+    --header-height: 56px;
+    --bg: #ffffff;
+    --sidebar-bg: #f8f7fc;
+    --border: #e8e9ec;
+    --text-primary: #1a1a1a;
+    --text-secondary: #6b7280;
+    --text-caption: #9ca3af;
+    --accent: #7C3AED;
+    --accent-bg: #f0ebff;
+    --hover-bg: #f0f1f3;
+    --tag-bg: #f0f1f3;
+  }
+
+  body {
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .header {
+    height: var(--header-height);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 12px;
+    background: var(--bg);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 10;
+  }
+  .header-logo { height: 20px; display: flex; align-items: center; }
+  .header-logo img { height: 100%; display: block; }
+  .header-divider { width: 1px; height: 20px; background: var(--border); }
+  .header-title {
+    font-size: 14px; font-weight: 500; color: #7C3AED;
+    position: relative; cursor: default;
+  }
+  .header-title:hover::after {
+    content: 'by Kate';
+    position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    margin-top: 6px; padding: 4px 10px;
+    background: #fff; color: #7C3AED; border: 1px solid #7C3AED;
+    font-size: 11px; font-weight: 500; border-radius: 4px;
+    white-space: nowrap; opacity: 0; animation: fadeIn 0.3s ease forwards;
+  }
+  .header-title:hover::before {
+    content: '';
+    position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    margin-top: 2px; border: 4px solid transparent; border-bottom-color: #7C3AED;
+    opacity: 0; animation: fadeIn 0.3s ease forwards;
+  }
+  @keyframes fadeIn { to { opacity: 1; } }
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+  .header-count { font-size: 12px; color: var(--text-caption); }
+  .header-slack {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; color: var(--text-secondary); text-decoration: none;
+    padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); transition: all 0.15s;
+  }
+  .header-slack:hover { background: var(--hover-bg); color: var(--text-primary); border-color: #d1d5db; }
+  .header-slack img { flex-shrink: 0; }
+
+  .layout { display: flex; height: calc(100vh - var(--header-height)); margin-top: var(--header-height); }
+
+  .sidebar {
+    width: var(--sidebar-width); min-width: var(--sidebar-width);
+    background: var(--sidebar-bg); border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 16px 0;
+  }
+  .sidebar-section { padding: 0 16px; margin-bottom: 8px; }
+  .sidebar-section-title {
+    font-size: 11px; font-weight: 600; color: var(--text-caption);
+    text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 0;
+  }
+  .proto-tag {
+    font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 3px;
+    background: var(--tag-bg); color: var(--text-secondary);
+  }
+  .proto-tag.new-feature { background: #fee2e2; color: #dc2626; }
+  .proto-tag.improvement { background: #e0f2fe; color: #0284c7; }
+  .proto-jira {
+    font-size: 11px; color: #1677FF; text-decoration: none; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 3px; position: relative; z-index: 1;
+  }
+  .proto-jira:hover { text-decoration: underline; }
+
+  .proto-group { padding: 10px 16px 6px; }
+  .proto-group-header { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+  .proto-group-title { font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1.4; }
+  .proto-group-meta { font-size: 11px; color: var(--text-caption); display: flex; gap: 8px; align-items: center; margin-top: 2px; }
+
+  .proto-child {
+    display: block; padding: 7px 16px 7px 32px; cursor: pointer;
+    border: none; background: none; width: 100%; text-align: left;
+    font-family: inherit; transition: background 0.12s; border-left: 3px solid transparent;
+  }
+  .proto-child:hover { background: var(--hover-bg); }
+  .proto-child.active { background: var(--accent-bg); border-left-color: var(--accent); }
+  .proto-child-title { font-size: 12px; font-weight: 500; color: var(--text-secondary); line-height: 1.4; }
+  .proto-child.active .proto-child-title { color: var(--accent); font-weight: 600; }
+  .proto-child-date { font-size: 10px; color: var(--text-caption); margin-top: 1px; }
+  .proto-child-date.loading { color: transparent; }
+
+  .viewer { flex: 1; background: var(--bg); position: relative; }
+  .viewer iframe { width: 100%; height: 100%; border: none; }
+
+  .viewer-empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 100%; color: var(--text-caption); gap: 16px; padding: 40px;
+  }
+  .empty-illustration { width: 200px; height: 140px; position: relative; margin-bottom: 8px; }
+  .empty-illustration .window {
+    width: 140px; height: 96px; border-radius: 10px; border: 2px solid #e0e3e8;
+    background: #f9fafb; position: absolute; left: 54%; top: 50%; transform: translate(-50%, -50%); overflow: hidden;
+  }
+  .empty-illustration .window-bar {
+    height: 20px; background: #f0f1f3; border-bottom: 1px solid #e0e3e8;
+    display: flex; align-items: center; padding: 0 8px; gap: 4px;
+  }
+  .empty-illustration .window-dot { width: 5px; height: 5px; border-radius: 50%; background: #d1d5db; }
+  .empty-illustration .window-body { padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .empty-illustration .window-line { height: 4px; border-radius: 2px; background: #e8e9ec; }
+  .empty-illustration .window-line:nth-child(1) { width: 70%; }
+  .empty-illustration .window-line:nth-child(2) { width: 90%; }
+  .empty-illustration .window-line:nth-child(3) { width: 50%; }
+  .empty-illustration .window-line:nth-child(4) { width: 80%; }
+  .empty-illustration .window-line:nth-child(5) { width: 60%; }
+  .empty-illustration .sidebar-mini {
+    width: 44px; height: 96px; border-radius: 8px; border: 2px solid #ede9fe;
+    background: #f5f3ff; position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+  }
+  .empty-illustration .sidebar-mini-bar { height: 20px; background: #ede9fe; border-bottom: 1px solid #c4b5fd; border-radius: 6px 6px 0 0; }
+  .empty-illustration .sidebar-mini-items { padding: 6px 5px; display: flex; flex-direction: column; gap: 4px; }
+  .empty-illustration .sidebar-mini-item { height: 4px; border-radius: 2px; background: #c4b5fd; }
+  .empty-illustration .sidebar-mini-item.active-item { background: var(--accent); opacity: 0.5; }
+  .empty-illustration .cursor {
+    width: 20px; height: 20px; position: absolute; left: 30px; bottom: 16px;
+    animation: cursorFloat 3s ease-in-out infinite;
+  }
+  @keyframes cursorFloat { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-4px, -6px); } }
+  .viewer-empty-text { font-size: 14px; font-weight: 500; color: var(--text-secondary); }
+
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+
+  /* ── 히스토리 툴팁 ── */
+  .changelog-tooltip {
+    position: fixed;
+    z-index: 9999;
+    background: #2a2a2a;
+    color: #f0f0f0;
+    font-size: 11px;
+    line-height: 1.5;
+    padding: 10px 14px;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    max-width: 340px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .changelog-tooltip.visible { opacity: 1; }
+
+  /* ── 외부 공유 금지 ── */
+  .header-confidential {
+    font-size: 11px;
+    color: #F23526;
+    cursor: pointer;
+    padding: 3px 8px;
+    border-radius: 4px;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .header-confidential:hover {
+    background: #f3f4f6;
+    color: #6b7280;
+  }
+
+  .confidential-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.15s ease;
+  }
+  .confidential-modal {
+    background: #fff;
+    border-radius: 16px;
+    width: 440px;
+    max-width: 90vw;
+    padding: 32px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    text-align: center;
+  }
+  .confidential-modal-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #fef2f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+  }
+  .confidential-modal h3 {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 12px;
+  }
+  .confidential-modal p {
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.7;
+    margin-bottom: 8px;
+  }
+  .confidential-modal .warning-box {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 12px;
+    color: #dc2626;
+    line-height: 1.6;
+    text-align: left;
+  }
+  .confidential-modal .modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 20px;
+    gap: 8px;
+  }
+  .confidential-modal .modal-actions a,
+  .confidential-modal .modal-actions button {
+    height: 40px;
+    padding: 0 24px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    box-sizing: border-box;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+  .confidential-modal .modal-actions a {
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text-secondary);
+  }
+  .confidential-modal .modal-actions a:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+    border-color: #d1d5db;
+  }
+  .confidential-modal .modal-actions button {
+    border: none;
+    background: #1a1a1a;
+    color: #fff;
+  }
+  .confidential-modal .modal-actions button:hover { background: #333; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo"><span style="font-family:Noto Sans KR,sans-serif;font-size:18px;font-weight:700;color:#003D99;letter-spacing:-0.3px">Grip Cloud</span></div>
+  <span class="header-divider"></span>
+  <span class="header-title"><svg width="16" height="16" viewBox="0 0 32 32" style="vertical-align: -2px; margin-right: 4px;"><rect width="32" height="32" rx="6" fill="#7C3AED"/><path d="M16 4c0 0-6 6-6 14h12C22 10 16 4 16 4z" fill="white" opacity="0.9"/><circle cx="16" cy="14" r="2" fill="#7C3AED"/><path d="M12 18l-2 4h2z" fill="white" opacity="0.6"/><path d="M20 18l2 4h-2z" fill="white" opacity="0.6"/><path d="M13 22h6l-1 5h-4z" fill="#FFD54F" opacity="0.8"/><path d="M14.5 22h3l-.5 3h-2z" fill="#FF8A65"/></svg>Prototypes</span>
+  <span class="header-confidential" onclick="document.getElementById('confidentialModal').style.display='flex'">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#F23526" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>
+    외부 공유 금지
+  </span>
+  <div class="header-right">
+    <span class="header-count" id="countLabel"></span>
+    <a class="header-slack" href="https://grip-corp.slack.com/team/U070Q44981K" target="_blank" rel="noopener"><img src="Assets/slack_logo.png" width="14" height="14" style="flex-shrink:0;display:block;border-radius:2px"> 문의하기</a>
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="viewer" id="viewer">
+    <div class="viewer-empty">
+      <div class="empty-illustration">
+        <div class="sidebar-mini">
+          <div class="sidebar-mini-bar"></div>
+          <div class="sidebar-mini-items">
+            <div class="sidebar-mini-item active-item"></div>
+            <div class="sidebar-mini-item"></div>
+            <div class="sidebar-mini-item"></div>
+            <div class="sidebar-mini-item"></div>
+          </div>
+        </div>
+        <div class="window">
+          <div class="window-bar">
+            <div class="window-dot"></div>
+            <div class="window-dot"></div>
+            <div class="window-dot"></div>
+          </div>
+          <div class="window-body">
+            <div class="window-line"></div>
+            <div class="window-line"></div>
+            <div class="window-line"></div>
+            <div class="window-line"></div>
+            <div class="window-line"></div>
+          </div>
+        </div>
+        <svg class="cursor" viewBox="0 0 24 24" fill="none">
+          <path d="M5 3l14 8-6 2-4 6-4-16z" fill="#7C3AED" opacity="0.6"/>
+        </svg>
+      </div>
+      <div class="viewer-empty-text">좌측 목록에서 프로토타입을 선택하세요.</div>
+    </div>
+  </main>
+</div>
+
+<div class="changelog-tooltip" id="changelogTooltip"></div>
+
+<!-- 외부 공유 금지 모달 -->
+<div class="confidential-modal-overlay" id="confidentialModal" >
+  <div class="confidential-modal">
+    <div class="confidential-modal-icon">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        <circle cx="12" cy="16" r="1"/>
+      </svg>
+    </div>
+    <h3>외부 공유가 금지된 페이지입니다</h3>
+    <p>이 프로토타입은 제품 개발 목적으로만 제작되었으며,<br>PS사업본부 구성원에게만 공유되었습니다.</p>
+    <div class="warning-box">
+      <strong>공유 시 발생하는 문제</strong><br>
+      - 이 페이지의 URL이 외부에 노출되면 HTML 기반의 모든 프로토타입 자산에 누구나 접근 가능<br>
+      - 미확정 스펙/디자인이 외부에 유출될 경우 혼선 발생 가능<br>
+      - 경쟁사 등 제3자가 기획 방향을 사전에 파악할 수 있는 리스크 존재
+    </div>
+    <div class="modal-actions">
+      <a href="https://grip-corp.slack.com/team/U070Q44981K" target="_blank" rel="noopener"><img src="Assets/slack_logo.png" width="14" height="14" style="flex-shrink:0;display:block;border-radius:2px"> 문의하기
+      </a>
+      <button onclick="document.getElementById('confidentialModal').style.display='none'">확인했습니다</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  프로토타입 목록
+  //  ※ date 필드 불필요 — 각 파일의 CHANGELOG에서 자동 추출
+  //  ※ children 내 정렬은 추출된 날짜 기준 최신순 자동 적용
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const prototypes = [
+    {
+      section: '진행 중',
+      groups: [
+        {
+          feature: 'AI 챗봇',
+          tag: '신규',
+          jira: 'PSC-2601',
+          children: [
+            {
+              title: '[어드민] 라이브 일정 등록/수정',
+              file: 'AI_chatbot/ai-chatbot_admin_live-schedule.html',
+              path: 'ai-chatbot/admin-live-schedule',
+            },
+          ],
+        },
+        {
+          feature: 'VOD 자동자막',
+          tag: '신규',
+          jira: 'PSC-2483',
+          children: [
+            {
+              title: '[어드민] VOD 콘텐츠 등록/수정',
+              file: 'VOD_cc/vod-cc_admin_vod-contents.html',
+              path: 'vod-cc/vod-contents',
+            },
+            {
+              title: '[어드민] VOD 콘텐츠 목록',
+              file: 'VOD_cc/vod-cc_admin_vod-list.html',
+              path: 'vod-cc/vod-list',
+            },
+            {
+              title: '[어드민] 라이브 일정 등록/수정',
+              file: 'VOD_cc/vod-cc_admin_live-schedule.html',
+              path: 'vod-cc/live-schedule',
+            },
+            {
+              title: '[플레이어] 자막 노출 가이드',
+              file: 'VOD_cc/vod-cc_player_subtitle.html',
+              path: 'vod-cc/player-subtitle',
+            },
+            {
+              title: '[어드민] 자막 확인 및 수정 (모달)',
+              file: 'VOD_cc/vod-cc_subtitle-modal.html',
+              path: 'vod-cc/subtitle-modal',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      section: '완료',
+      groups: [],
+    },
+  ];
+
+  const tagClassMap = { '신규': 'new-feature', '고도화': 'improvement' };
+
+  // ── CHANGELOG 파싱 (날짜 + 항목 전체 추출) ──
+  async function fetchChangelog(filePath) {
+    try {
+      const resp = await fetch(filePath);
+      if (!resp.ok) return null;
+      const text = await resp.text();
+      // 최신 날짜
+      const dateMatch = text.match(/date\s*:\s*["'](\d{4}\.\d{2}\.\d{2})["']/);
+      const date = dateMatch ? dateMatch[1] : null;
+      // 전체 CHANGELOG 항목 추출: date + items 쌍
+      const entries = [];
+      const entryRegex = /\{date\s*:\s*["'](\d{4}\.\d{2}\.\d{2})["']\s*,\s*items\s*:\s*\[([\s\S]*?)\]\s*\}/g;
+      let m;
+      while ((m = entryRegex.exec(text)) !== null) {
+        const entryDate = m[1];
+        const itemsRaw = m[2];
+        const items = [];
+        const itemRegex = /["']((?:[^"'\\]|\\.)*)["']/g;
+        let im;
+        while ((im = itemRegex.exec(itemsRaw)) !== null) {
+          items.push(im[1].replace(/\\"/g, '"').replace(/\\'/g, "'"));
+        }
+        entries.push({ date: entryDate, items });
+      }
+      return { date, entries };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function render() {
+    const sidebar = document.getElementById('sidebar');
+    const countLabel = document.getElementById('countLabel');
+
+    // 1단계: 기본 렌더링 (날짜는 로딩 상태)
+    let totalCount = 0;
+    let html = '';
+
+    prototypes.forEach(section => {
+      const visibleGroups = section.groups.filter(g => g.children && g.children.length > 0);
+      if (visibleGroups.length === 0 && section.section === '완료') return;
+
+      visibleGroups.forEach(g => { totalCount += g.children.length; });
+
+      html += '<div class="sidebar-section">';
+      html += '<div class="sidebar-section-title">' + section.section + '</div>';
+      html += '</div>';
+
+      visibleGroups.forEach(group => {
+        const tagHtml = group.tag
+          ? '<span class="proto-tag ' + (tagClassMap[group.tag] || '') + '">' + group.tag + '</span>'
+          : '';
+        const jiraHtml = group.jira
+          ? '<a class="proto-jira" href="https://gripcorp.atlassian.net/browse/' + group.jira + '" target="_blank" rel="noopener">' + group.jira + '</a>'
+          : '';
+
+        html += '<div class="proto-group">';
+        html += '<div class="proto-group-header">';
+        html += '<span class="proto-group-title">' + group.feature + '</span>';
+        html += tagHtml;
+        html += '</div>';
+        html += '<div class="proto-group-meta">' + jiraHtml + '</div>';
+        html += '</div>';
+
+        group.children.forEach(child => {
+          const pathId = child.path || child.file.replace('.html', '');
+          html += '<div class="proto-child" data-file="' + child.file + '" data-path="' + pathId + '">';
+          html += '<div class="proto-child-title">' + child.title + '</div>';
+          html += '<div class="proto-child-date loading" data-dateof="' + child.file + '">불러오는 중...</div>';
+          html += '</div>';
+        });
+      });
+    });
+
+    sidebar.innerHTML = html;
+    countLabel.textContent = '총 ' + totalCount + '개';
+    bindClicks();
+
+    // 해시가 있으면 해당 프로토타입 자동 선택
+    if (window.location.hash) {
+      selectByPath(window.location.hash.slice(1));
+    }
+
+    // 2단계: 각 파일에서 날짜 비동기 추출 후 업데이트 + 정렬
+    const allChildren = [];
+    prototypes.forEach(section => {
+      section.groups.forEach(group => {
+        group.children.forEach(child => {
+          allChildren.push(child);
+        });
+      });
+    });
+
+    // 2~4단계: fetch → 정렬 → 재렌더링 (실패해도 1단계 렌더링 유지)
+    try {
+      await Promise.all(allChildren.map(async (child) => {
+        try {
+          const result = await fetchChangelog(child.file);
+          child._fetchedDate = (result && result.date) ? result.date : '알 수 없음';
+          child._changelog = (result && result.entries) ? result.entries : [];
+        } catch(e) {
+          child._fetchedDate = '알 수 없음';
+          child._changelog = [];
+        }
+      }));
+
+      // 3단계: 날짜 기준 최신순 정렬
+      prototypes.forEach(section => {
+        section.groups.forEach(group => {
+          group.children.sort((a, b) => {
+            const da = (a._fetchedDate || '').replace(/\./g, '');
+            const db = (b._fetchedDate || '').replace(/\./g, '');
+            return db.localeCompare(da);
+          });
+        });
+      });
+
+      // 4단계: 정렬된 데이터로 사이드바 전체 재렌더링
+      let html2 = '';
+      prototypes.forEach(section => {
+        const visibleGroups = section.groups.filter(g => g.children && g.children.length > 0);
+        if (visibleGroups.length === 0 && section.section === '완료') return;
+
+        html2 += '<div class="sidebar-section">';
+        html2 += '<div class="sidebar-section-title">' + section.section + '</div>';
+        html2 += '</div>';
+
+        visibleGroups.forEach(group => {
+          const tagHtml = group.tag
+            ? '<span class="proto-tag ' + (tagClassMap[group.tag] || '') + '">' + group.tag + '</span>'
+            : '';
+          const jiraHtml = group.jira
+            ? '<a class="proto-jira" href="https://gripcorp.atlassian.net/browse/' + group.jira + '" target="_blank" rel="noopener">' + group.jira + '</a>'
+            : '';
+
+          html2 += '<div class="proto-group">';
+          html2 += '<div class="proto-group-header">';
+          html2 += '<span class="proto-group-title">' + group.feature + '</span>';
+          html2 += tagHtml;
+          html2 += '</div>';
+          html2 += '<div class="proto-group-meta">' + jiraHtml + '</div>';
+          html2 += '</div>';
+
+          group.children.forEach(child => {
+            const pathId = child.path || child.file.replace('.html', '');
+            var tooltipAttr = '';
+            if (child._changelog && child._changelog.length > 0) {
+              try {
+                tooltipAttr = ' data-tooltip="' + buildTooltipHtml(child._changelog).replace(/"/g, '&quot;') + '"';
+              } catch(e) {}
+            }
+            html2 += '<div class="proto-child" data-file="' + child.file + '" data-path="' + pathId + '"' + tooltipAttr + '>';
+            html2 += '<div class="proto-child-title">' + child.title + '</div>';
+            html2 += '<div class="proto-child-date">' + (child._fetchedDate || '알 수 없음') + '</div>';
+            html2 += '</div>';
+          });
+        });
+      });
+
+      sidebar.innerHTML = html2;
+      bindClicks();
+
+      if (window.location.hash) {
+        selectByPath(window.location.hash.slice(1));
+      }
+    } catch(e) {
+      // fetch/정렬/재렌더링 실패 시 1단계 렌더링 유지, 날짜만 fallback 처리
+      console.warn('CHANGELOG fetch failed, using initial render:', e);
+      var dateEls = sidebar.querySelectorAll('.proto-child-date.loading');
+      dateEls.forEach(function(el) { el.textContent = '-'; el.classList.remove('loading'); });
+    }
+  }
+
+  function buildTooltipHtml(entries) {
+    let tipHtml = '';
+    entries.forEach(entry => {
+      tipHtml += '<div style="margin-bottom:6px"><div style="font-weight:600;color:#7C3AED;margin-bottom:2px">' + entry.date + '</div>';
+      entry.items.forEach(item => {
+        const isSub = item.startsWith('  - ');
+        const txt = isSub ? item.slice(4) : item;
+        tipHtml += '<div style="padding-left:' + (isSub ? '12px' : '0') + ';color:#e0e0e0;line-height:1.5">' + (isSub ? '· ' : '- ') + txt + '</div>';
+      });
+      tipHtml += '</div>';
+    });
+    return tipHtml;
+  }
+
+  function selectByPath(path) {
+    const sidebar = document.getElementById('sidebar');
+    const target = sidebar.querySelector('.proto-child[data-path="' + path + '"]');
+    if (target) {
+      sidebar.querySelectorAll('.proto-child').forEach(b => b.classList.remove('active'));
+      target.classList.add('active');
+      document.getElementById('viewer').innerHTML =
+        '<iframe src="' + target.dataset.file + '"></iframe>';
+    }
+  }
+
+  function bindClicks() {
+    const sidebar = document.getElementById('sidebar');
+    const tooltip = document.getElementById('changelogTooltip');
+
+    sidebar.querySelectorAll('.proto-child').forEach(btn => {
+      btn.onclick = (e) => {
+        sidebar.querySelectorAll('.proto-child').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const path = btn.dataset.path;
+        window.location.hash = path;
+        document.getElementById('viewer').innerHTML =
+          '<iframe src="' + btn.dataset.file + '"></iframe>';
+      };
+
+      // 툴팁: hover
+      btn.addEventListener('mouseenter', (e) => {
+        const tipData = btn.dataset.tooltip;
+        if (!tipData) return;
+        tooltip.innerHTML = tipData;
+        tooltip.classList.add('visible');
+      });
+      btn.addEventListener('mousemove', (e) => {
+        const tipW = tooltip.offsetWidth;
+        const tipH = tooltip.offsetHeight;
+        let x = e.clientX + 12;
+        let y = e.clientY - tipH - 8;
+        // 화면 밖으로 나가지 않도록 보정
+        if (x + tipW > window.innerWidth - 8) x = e.clientX - tipW - 12;
+        if (y < 8) y = e.clientY + 16;
+        tooltip.style.left = x + 'px';
+        tooltip.style.top = y + 'px';
+      });
+      btn.addEventListener('mouseleave', () => {
+        tooltip.classList.remove('visible');
+      });
+    });
+  }
+
+  render();
+
+  window.addEventListener('hashchange', () => {
+    if (window.location.hash) {
+      selectByPath(window.location.hash.slice(1));
+    }
+  });
+</script>
+
+</body>
+</html>

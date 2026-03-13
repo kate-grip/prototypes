@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>[어드민] 자동자막 - VOD 콘텐츠 목록</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>*{margin:0;padding:0;box-sizing:border-box;font-family:'Noto Sans KR',sans-serif;}
+button,input,select,textarea{font-family:inherit;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+/*
+ * ── Grip Cloud 컬러 시스템 (Light) ──
+ * Primary:    Strong #222222 | Normal #003D99 | Secondary #508EFF | Admin_point #1677FF
+ * Border:     Normal #E4E5E7 | Accent #AFB0B2 | Assistive #F0F0F0 | Bold #666666
+ * Status:     Positive #6198FD | Negative1 #F23526 | Negative2 #FF4D4F
+ * Text:       Normal #222222 | Sub-menu #6C6C6C | Alternative #888888 | Assistive #B0B0B0
+ * Background: 001 #F9F9F9 | 002 #FAFAFA | 003 #F7F8FA | 004 #E6F4FF
+ * Dim:        Modal rgba(0,0,0,0.45) | Toast rgba(0,0,0,0.10)
+ */
+const C = {
+  primary: "#1677FF", primaryLight: "#E6F4FF", bg: "#F9F9F9", white: "#FFFFFF",
+  g50: "#FAFAFA", g100: "#F0F0F0", g200: "#E4E5E7", g300: "#AFB0B2",
+  g400: "#B0B0B0", g500: "#888888", g600: "#6C6C6C", g700: "#666666",
+  g800: "#222222", g900: "#222222",
+  amber50: "#FFFBEB", amber500: "#F59E0B", amber700: "#B45309",
+  green50: "#F6FFED", green600: "#52C41A", green700: "#52C41A",
+  blue50: "#E6F4FF", blue600: "#1677FF",
+  red50: "#FFF1F0", red600: "#F23526",
+  negative2: "#FF4D4F",
+  secondary: "#508EFF",
+  primaryNormal: "#003D99",
+};
+
+// ── 배지 컴포넌트 ──
+function SubtitleBadge({ status }) {
+  if (!status) return null;
+  const isGen = status === "generating";
+  const isFailed = status === "failed";
+  const bgColor = isGen ? C.amber50 : isFailed ? "rgba(245,34,45,0.15)" : "rgba(128,226,126,0.2)";
+  const textColor = isGen ? C.amber700 : isFailed ? "#F23526" : "#4CAF50";
+  const label = isGen ? "자막 생성중" : isFailed ? "자막 생성실패" : "자막 생성완료";
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 5,
+      padding: "3px 12px", borderRadius: 4, fontSize: 10, fontWeight: 700,
+      backgroundColor: bgColor, color: textColor,
+      whiteSpace: "nowrap",
+    }}>
+      {isGen && <span style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: C.amber500, animation: "pulse 1.5s ease-in-out infinite" }} />}
+      {label}
+    </span>
+  );
+}
+
+// ── 더미 데이터 ──
+const COVER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='62' height='110' fill='%23f9f9f9'%3E%3Crect width='62' height='110' rx='4' stroke='%23eee' stroke-width='1' fill='%23f9f9f9'/%3E%3Ctext x='31' y='58' fill='%23ccc' font-size='9' text-anchor='middle' font-family='sans-serif'%3E9:16%3C/text%3E%3C/svg%3E";
+const COVER_CAKE = "data:image/jpeg;base64,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";
+const COVER_SWEATER = "data:image/jpeg;base64,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";
+
+// 배지 타입: blue(업로드/라이브/리허설), green(공개중)
+const baseRows = [
+  {
+    id: "highlight-1",
+    title: "<완판감사 앵콜 재방송> [봄파티 미식대전] 스트로베리 초콜릿 케이크 예약배송",
+    typeBadges: [{ label: "라이브", color: "blue" }, { label: "공개중", color: "green" }],
+    subtitleStatus: "generating",
+    vodLiveEnabled: true,
+    shortsEnabled: false,
+    cover: COVER_CAKE,
+    startDate: "2026.03.03 10:00:00",
+    regDate: "2026.03.03 14:31:53",
+  },
+  {
+    id: "highlight-2",
+    title: "[봄파티 미식대전] 스트로베리 초콜릿 케이크 예약배송",
+    typeBadges: [{ label: "라이브", color: "blue" }, { label: "공개중", color: "green" }],
+    subtitleStatus: "complete",
+    vodLiveEnabled: true,
+    shortsEnabled: false,
+    cover: COVER_CAKE,
+    startDate: "2026.03.03 12:00:00",
+    regDate: "2026.03.03 13:53:58",
+  },
+  {
+    id: "row-3",
+    title: "설명절 특집! 봄옷 미리준비 BIG SALE",
+    typeBadges: [{ label: "업로드", color: "blue" }, { label: "공개중", color: "green" }],
+    subtitleStatus: "failed",
+    vodLiveEnabled: true,
+    shortsEnabled: false,
+    cover: COVER_SWEATER,
+    startDate: "-",
+    regDate: "2026.02.03 11:25:03",
+  },
+];
+
+
+// ─── 수정 내역 ───
+const CHANGELOG = [
+  { date: "2026.03.05", items: ["최초 공유"] },
+];
+
+function ChangelogModal({ onClose }) {
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.4)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div onClick={e => e.stopPropagation()} style={{ backgroundColor: "#fff", borderRadius: 12, width: 480, maxHeight: "70vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid #E5E5E5", flexShrink: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#171717" }}>업데이트 히스토리</div>
+          <svg onClick={onClose} width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="#737373" strokeWidth="1.5" strokeLinecap="round" style={{ cursor: "pointer" }}>
+            <line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/>
+          </svg>
+        </div>
+        <div style={{ overflow: "auto", padding: "16px 20px" }}>
+          {CHANGELOG.map((log, i) => (
+            <div key={i} style={{ marginBottom: i < CHANGELOG.length - 1 ? 16 : 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#2563EB", marginBottom: 6 }}>{log.date}</div>
+              {log.items.map((item, j) => (
+                <div key={j} style={{ fontSize: 12, color: "#525252", lineHeight: 1.7, paddingLeft: 10, position: "relative" }}>
+                  <span style={{ position: "absolute", left: 0, color: "#A3A3A3" }}>-</span>
+                  {item}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+function App() {
+  const [activeScenario, setActiveScenario] = useState(0);
+  const [showChangelog, setShowChangelog] = useState(false);
+
+  const scenarios = [
+    { name: "1. 변환 완료 + 자막 생성중", desc: "VOD 변환 완료 상태에서 자막 생성이 진행 중인 상태", highlightId: "highlight-1" },
+    { name: "2. 변환 완료 + 자막 생성완료", desc: "VOD 변환 및 자막 생성이 모두 완료된 상태", highlightId: "highlight-2" },
+    { name: "3. 자막 생성실패", desc: "자막 생성 과정에서 오류가 발생한 상태", highlightId: "row-3" },
+  ];
+
+  const highlightId = scenarios[activeScenario].highlightId;
+
+  React.useEffect(() => {
+    const el = document.querySelector(`[data-row-id="${highlightId}"]`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [activeScenario]);
+
+  return (
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Noto Sans KR', sans-serif", backgroundColor: C.white }}>
+
+      {showChangelog && <ChangelogModal onClose={() => setShowChangelog(false)} />}
+
+      {/* 페이지 타이틀 바 */}
+      <div style={{ flexShrink: 0, padding: "10px 24px 12px", backgroundColor: C.white, borderBottom: "1px solid #EEEEEE" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+          <div style={{ fontSize: 12, color: "#A3A3A3" }}>VOD 자동자막</div>
+          <svg onClick={() => setShowChangelog(true)} width="14" height="14" viewBox="0 0 20 20" fill="none" style={{ cursor: "pointer", flexShrink: 0 }}><circle cx="10" cy="10" r="8.5" stroke="#A3A3A3" strokeWidth="1.3"/><polyline points="10,5 10,10 13.5,12" stroke="#A3A3A3" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "#171717" }}>VOD 콘텐츠</h1>
+          <button style={{ padding: "6px 14px", borderRadius: 4, border: "none", backgroundColor: C.primary, fontSize: 12, color: C.white, fontWeight: 400, cursor: "pointer" }}>VOD 콘텐츠 등록</button>
+        </div>
+      </div>
+      <div style={{ flex: 1, padding: "0 24px 24px", overflowY: "auto", backgroundColor: C.white }}>
+
+            {/* 필터 영역 */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", padding: "12px 16px", margin: "16px 0 12px", backgroundColor: C.g50, borderRadius: 4 }}>
+              <span style={{ fontSize: 12, color: C.g800, fontWeight: 500 }}>VOD 타입</span>
+              <select style={{ fontSize: 12, padding: "6px 28px 6px 10px", border: `1px solid ${C.g200}`, borderRadius: 4, color: C.g700, backgroundColor: C.white, minWidth: 120, appearance: "auto" }}>
+                <option>전체</option><option>라이브</option><option>업로드</option>
+              </select>
+              <span style={{ fontSize: 12, color: C.g800, fontWeight: 500 }}>공개여부</span>
+              <select style={{ fontSize: 12, padding: "6px 28px 6px 10px", border: `1px solid ${C.g200}`, borderRadius: 4, color: C.g700, backgroundColor: C.white, minWidth: 120, appearance: "auto" }}>
+                <option>전체</option>
+              </select>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, border: `1px solid ${C.g200}`, borderRadius: 4, backgroundColor: C.white, padding: "0 8px" }}>
+                <select style={{ fontSize: 12, padding: "6px 4px", border: "none", color: C.g700, appearance: "auto", backgroundColor: "transparent" }}>
+                  <option>등록일시</option>
+                </select>
+                <span style={{ color: C.g200 }}>|</span>
+                <input type="text" value="2025/03/05" readOnly style={{ fontSize: 12, padding: "6px 4px", border: "none", width: 80, color: C.g700, backgroundColor: "transparent" }} />
+                <span style={{ fontSize: 12, color: C.g400 }}>~</span>
+                <input type="text" value="2026/03/05" readOnly style={{ fontSize: 12, padding: "6px 4px", border: "none", width: 80, color: C.g700, backgroundColor: "transparent" }} />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, border: `1px solid ${C.g200}`, borderRadius: 4, backgroundColor: C.white, padding: "0 8px", flex: 1, minWidth: 200 }}>
+                <select style={{ fontSize: 12, padding: "6px 4px", border: "none", color: C.g700, appearance: "auto", backgroundColor: "transparent" }}>
+                  <option>제목</option>
+                </select>
+                <span style={{ color: C.g200 }}>|</span>
+                <input type="text" placeholder="검색어를 입력하세요." style={{ fontSize: 12, padding: "6px 4px", border: "none", flex: 1, color: C.g700, backgroundColor: "transparent", outline: "none" }} />
+              </div>
+              {/* 검색 (필타입) */}
+              <button style={{ width: 32, height: 32, border: "none", borderRadius: 4, backgroundColor: C.g800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+              </button>
+              {/* 초기화 (라인타입) */}
+              <button style={{ width: 32, height: 32, border: `1px solid ${C.g200}`, borderRadius: 4, backgroundColor: C.white, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.g800} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+              </button>
+            </div>
+
+            {/* 삭제 + 페이징 툴바 */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <button disabled style={{ padding: "5px 12px", borderRadius: 4, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 12, color: C.g400, cursor: "not-allowed" }}>삭제</button>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 12, color: C.g500 }}>총 61개</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <span style={{ fontSize: 12, color: C.g300, padding: "2px 6px" }}>&lt;</span>
+                  <span style={{ fontSize: 12, color: C.primary, backgroundColor: C.white, padding: "2px 8px", borderRadius: 4, fontWeight: 600, border: `1px solid ${C.primary}` }}>1</span>
+                  {[2,3,4].map(n => <span key={n} style={{ fontSize: 12, color: C.g500, padding: "2px 8px", cursor: "pointer", border: `1px solid ${C.g200}`, borderRadius: 4 }}>{n}</span>)}
+                  <span style={{ fontSize: 12, color: C.g500, padding: "2px 6px", cursor: "pointer" }}>&gt;</span>
+                </div>
+                <select style={{ fontSize: 12, padding: "4px 8px", border: `1px solid ${C.g200}`, borderRadius: 4, color: C.g600, appearance: "auto" }}>
+                  <option>20 / 페이지</option>
+                </select>
+                <button style={{ padding: "5px 12px", borderRadius: 4, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 12, color: C.g600, cursor: "pointer" }}>서비스 사용량</button>
+                <button style={{ padding: "5px 12px", borderRadius: 4, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 12, color: C.g600, cursor: "pointer" }}>VOD 목록 다운로드</button>
+              </div>
+            </div>
+
+            {/* 테이블 (운영 HTML 구조 기반) */}
+            <div style={{ backgroundColor: C.white, border: `1px solid ${C.g200}`, overflow: "auto" }}>
+              <table style={{ width: "100%", minWidth: 1200, borderCollapse: "collapse", tableLayout: "fixed" }}>
+                <colgroup>
+                  <col style={{ width: 32 }} />
+                  <col style={{ width: 80 }} />
+                  <col style={{ width: 120 }} />
+                  <col />
+                  <col style={{ width: 140 }} />
+                  <col style={{ width: 150 }} />
+                  <col style={{ width: 140 }} />
+                  <col style={{ width: 120 }} />
+                  <col style={{ width: 120 }} />
+                </colgroup>
+                <thead>
+                  <tr style={{ backgroundColor: "#FAFAFA", borderBottom: `1px solid ${C.g200}` }}>
+                    <th style={{ padding: "10px 8px", textAlign: "center" }}><input type="checkbox" style={{ width: 14, height: 14 }} /></th>
+                    <th style={{ padding: "10px 8px" }}></th>
+                    <th style={{ padding: "10px 8px", fontSize: 12, fontWeight: 700, color: C.g500, textAlign: "center" }}>커버 이미지</th>
+                    <th style={{ padding: "10px 8px", fontSize: 12, fontWeight: 700, color: C.g500 }}>제목</th>
+                    <th style={{ padding: "10px 8px", fontSize: 12, fontWeight: 700, color: C.g500, textAlign: "center" }}>VOD라이브</th>
+                    <th style={{ padding: "10px 8px", fontSize: 12, fontWeight: 700, color: C.g500, textAlign: "center" }}>쇼츠</th>
+                    <th style={{ padding: "10px 8px", fontSize: 12, fontWeight: 700, color: C.g500, textAlign: "center" }}>채널 아이디</th>
+                    <th style={{ padding: "10px 8px", fontSize: 12, fontWeight: 700, color: C.g500, textAlign: "center" }}>시작일시</th>
+                    <th style={{ padding: "10px 8px", fontSize: 12, fontWeight: 700, color: C.g500, textAlign: "center" }}>등록일시</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {baseRows.map((row) => {
+                    const isHighlight = row.id === highlightId;
+                    return (
+                      <tr key={row.id} data-row-id={row.id} style={{
+                        borderBottom: `1px solid ${C.g100}`,
+                        backgroundColor: C.white,
+                        outline: isHighlight ? `2px solid ${C.primary}` : "none",
+                        outlineOffset: -2,
+                        transition: "all 0.2s",
+                      }}>
+                        {/* 체크박스 */}
+                        <td style={{ padding: "12px 8px", textAlign: "center", verticalAlign: "middle" }}><input type="checkbox" style={{ width: 14, height: 14 }} /></td>
+
+                        {/* 수정/결과 버튼 */}
+                        <td style={{ padding: "16px 5px", verticalAlign: "middle" }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <button style={{ padding: "4px 6px", borderRadius: 4, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 11, color: C.g600, cursor: "pointer", whiteSpace: "nowrap" }}>수정</button>
+                            <button style={{ padding: "4px 6px", borderRadius: 4, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 11, color: C.g600, cursor: "pointer", display: "flex", alignItems: "center", gap: 2, justifyContent: "center", whiteSpace: "nowrap" }}>결과 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+                          </div>
+                        </td>
+
+                        {/* 커버 이미지 (9:16) */}
+                        <td style={{ padding: "16px 5px", textAlign: "center", verticalAlign: "middle" }}>
+                          <img src={row.cover || COVER} alt="" style={{ width: 62, height: 110, borderRadius: 4, objectFit: "contain", border: "1px solid #eee", backgroundColor: "#f9f9f9", display: "block", margin: "0 auto" }} />
+                        </td>
+
+                        {/* 제목 + 배지 */}
+                        <td style={{ padding: "12px 8px", verticalAlign: "middle" }}>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 4 }}>
+                            {row.typeBadges.map((b, bi) => {
+                              const badgeColors = { blue: { bg: "rgba(106,161,255,0.2)", c: "#1677FF" }, red: { bg: "rgba(245,34,45,0.15)", c: "#F5222D" }, gray: { bg: "#F5F5F5", c: "#8C8C8C" }, green: { bg: "rgba(128,226,126,0.2)", c: "#4CAF50" } };
+                              const bc = badgeColors[b.color] || badgeColors.gray;
+                              return <span key={bi} style={{ fontSize: 10, padding: "3px 12px", borderRadius: 4, backgroundColor: bc.bg, color: bc.c, fontWeight: 700 }}>{b.label}</span>;
+                            })}
+                            {row.subtitleStatus && <SubtitleBadge status={row.subtitleStatus} />}
+                          </div>
+                          <div style={{ fontSize: 13, color: C.g800, fontWeight: 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.5 }}>
+                            {row.title}
+                          </div>
+                        </td>
+
+                        {/* VOD라이브 */}
+                        <td style={{ padding: "12px 8px", textAlign: "center", verticalAlign: "middle" }}>
+                          <button disabled={!row.vodLiveEnabled} style={{ padding: "6px 10px", borderRadius: 4, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 13, color: row.vodLiveEnabled ? C.g700 : C.g400, cursor: row.vodLiveEnabled ? "pointer" : "default" }}>VOD라이브</button>
+                        </td>
+
+                        {/* 쇼츠 */}
+                        <td style={{ padding: "12px 8px", textAlign: "center", verticalAlign: "middle" }}>
+                          <button disabled style={{ padding: "6px 8px", borderRadius: 4, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 12, color: C.g400, cursor: "default" }}>AI 쇼츠 만들기</button>
+                        </td>
+
+                        {/* 채널 아이디 */}
+                        <td style={{ padding: "12px 8px", textAlign: "center", verticalAlign: "middle" }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
+                            <button style={{ padding: "4px 8px", borderRadius: 4, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 11, color: C.g600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>아이디 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#777" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+                            <button style={{ padding: "4px 8px", borderRadius: 4, border: `1px solid ${C.g200}`, backgroundColor: C.white, fontSize: 11, color: C.g600, cursor: "pointer" }}>URL/설치</button>
+                          </div>
+                        </td>
+
+                        {/* 시작일시 */}
+                        <td style={{ padding: "12px 8px", fontSize: 12, color: C.g500, textAlign: "center", verticalAlign: "middle" }}>{row.startDate}</td>
+
+                        {/* 등록일시 */}
+                        <td style={{ padding: "12px 8px", fontSize: 12, color: C.g500, textAlign: "center", verticalAlign: "middle" }}>{row.regDate}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+      {/* 시나리오 전환 */}
+      <div style={{ borderTop: `2px solid ${C.g300}`, backgroundColor: "#FAFAFA", padding: "16px 24px", flexShrink: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: C.g900, marginBottom: 4 }}>시나리오 전환</div>
+        <div style={{ fontSize: 12, color: C.g400, marginBottom: 16 }}>시나리오 버튼 클릭 시 해당 행이 하이라이트됩니다.</div>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          {scenarios.map((sc, i) => (
+            <button key={i} onClick={() => setActiveScenario(i)} style={{
+              padding: "10px 16px", borderRadius: 8, cursor: "pointer", textAlign: "left",
+              border: activeScenario === i ? `2px solid ${C.primary}` : `1px solid ${C.g200}`,
+              backgroundColor: activeScenario === i ? C.primaryLight : C.white, flex: "1 1 280px",
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: activeScenario === i ? C.primary : C.g700, marginBottom: 4 }}>{sc.name}</div>
+              <div style={{ fontSize: 11, color: C.g400, lineHeight: 1.5 }}>{sc.desc}</div>
+              {i === 0 && (
+                <div style={{ fontSize: 11, color: C.g500, marginTop: 6, lineHeight: 1.5 }}>
+                  <div>VOD 타입: <strong style={{ color: C.blue600 }}>라이브</strong> | 자막: <strong style={{ color: C.amber700 }}>자막 생성중</strong> (펄스 애니메이션)</div>
+                  <div>변환 완료 후 자막 생성이 진행 중인 상태를 목록에서 확인 가능</div>
+                </div>
+              )}
+              {i === 1 && (
+                <div style={{ fontSize: 11, color: C.g500, marginTop: 6, lineHeight: 1.5 }}>
+                  <div>VOD 타입: <strong style={{ color: C.blue600 }}>라이브</strong> | 자막: <strong style={{ color: C.green700 }}>자막 생성완료</strong></div>
+                  <div>상세 진입 없이 목록에서 자막 완료 여부 확인 가능</div>
+                </div>
+              )}
+              {i === 2 && (
+                <div style={{ fontSize: 11, color: C.g500, marginTop: 6, lineHeight: 1.5 }}>
+                  <div>VOD 타입: <strong style={{ color: C.blue600 }}>업로드</strong> | 자막: <strong style={{ color: C.red600 }}>자막 생성실패</strong></div>
+                  <div>자막 생성 실패 시 에러 배지로 노출되어 결과 확인 후 관리자 문의 필요 (자체 재시도 지원 안함)</div>
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById("root"));
+</script>
+</body>
+</html>
