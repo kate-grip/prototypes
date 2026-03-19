@@ -1,1 +1,0 @@
-import{t as e}from"./jsx-runtime-CAIBqAud.js";import t from"./VodCcAdminVodContents-B6cE8dh3.js";var n=e();function r(){return(0,n.jsx)(t,{initialModal:!0})}export{r as default};
