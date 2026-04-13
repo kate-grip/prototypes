@@ -1,1 +1,0 @@
-import{t as e}from"./jsx-runtime-DuFlYUda.js";import"./ContentLayout-fNZVZqQF.js";import"./ChangelogModal-CW1QwDz0.js";import"./Toggle-B5uXp8jT.js";import"./ScenarioPanel-DnKvEKLF.js";import"./Badge-Dhke4q5-.js";import"./FormRow-CBquF8So.js";import t from"./VodCcAdminVodContents-Cmf_72hm.js";var n=e();function r(){return(0,n.jsx)(t,{initialModal:!0})}export{r as default};
